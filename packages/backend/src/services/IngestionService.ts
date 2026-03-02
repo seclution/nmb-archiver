@@ -28,6 +28,8 @@ import { FilterBuilder } from './FilterBuilder';
 import { AuditService } from './AuditService';
 import { User } from '@open-archiver/types';
 import { checkDeletionEnabled } from '../helpers/deletionGuard';
+import { SettingsService } from './SettingsService';
+import { AuditProofService } from './AuditProofService';
 
 export class IngestionService {
 	private static auditService = new AuditService();
@@ -476,6 +478,18 @@ export class IngestionService {
 					tags: email.tags,
 				})
 				.returning();
+
+			try {
+				const settingsService = new SettingsService();
+				const systemSettings = await settingsService.getSystemSettings();
+				const auditProofService = new AuditProofService();
+				await auditProofService.saveEmailHash(systemSettings, archivedEmail.id, emailHash);
+			} catch (error) {
+				logger.warn(
+					{ archivedEmailId: archivedEmail.id, error },
+					'Failed to push email hash to audit-proof backend'
+				);
+			}
 
 			if (email.attachments.length > 0) {
 				for (const attachment of email.attachments) {

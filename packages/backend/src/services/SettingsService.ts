@@ -7,6 +7,9 @@ const DEFAULT_SETTINGS: SystemSettings = {
 	language: 'en',
 	theme: 'system',
 	supportEmail: null,
+	auditProofInstanceId: null,
+	auditProofInstanceServerAddr: null,
+	auditProofDebugRequests: false,
 };
 
 export class SettingsService {
@@ -23,7 +26,7 @@ export class SettingsService {
 			return this.createDefaultSystemSettings();
 		}
 
-		return settings[0].config;
+		return this.normalizeSettings(settings[0].config);
 	}
 
 	/**
@@ -61,7 +64,7 @@ export class SettingsService {
 			});
 		}
 
-		return result.config;
+		return this.normalizeSettings(result.config);
 	}
 
 	/**
@@ -74,6 +77,13 @@ export class SettingsService {
 			.insert(systemSettings)
 			.values({ config: DEFAULT_SETTINGS })
 			.returning();
-		return result.config;
+		return this.normalizeSettings(result.config);
+	}
+
+	private normalizeSettings(settings: SystemSettings): SystemSettings {
+		return {
+			...DEFAULT_SETTINGS,
+			...settings,
+		};
 	}
 }

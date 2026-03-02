@@ -23,11 +23,19 @@ export const actions: Actions = {
 		const language = formData.get('language');
 		const theme = formData.get('theme');
 		const supportEmail = formData.get('supportEmail');
+		const auditProofInstanceId = formData.get('auditProofInstanceId');
+		const auditProofInstanceServerAddr = formData.get('auditProofInstanceServerAddr');
+		const auditProofDebugRequests = formData.get('auditProofDebugRequests') === 'on';
 
 		const body: Partial<SystemSettings> = {
 			language: language as SystemSettings['language'],
 			theme: theme as SystemSettings['theme'],
 			supportEmail: supportEmail ? String(supportEmail) : null,
+			auditProofInstanceId: auditProofInstanceId ? String(auditProofInstanceId) : null,
+			auditProofInstanceServerAddr: auditProofInstanceServerAddr
+				? String(auditProofInstanceServerAddr)
+				: null,
+			auditProofDebugRequests,
 		};
 
 		const response = await api('/settings/system', event, {

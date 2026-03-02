@@ -21,4 +21,13 @@ export interface SystemSettings {
 
 	/** A public-facing email address for user support inquiries. */
 	supportEmail: string | null;
+
+	/** Prefix for the audit-proof backend key: `${auditProofInstanceId}:${archivedEmailId}`. */
+	auditProofInstanceId: string | null;
+
+	/** Base URL of the audit-proof backend instance, e.g. http://10.99.105.10 */
+	auditProofInstanceServerAddr: string | null;
+
+	/** Enables verbose logging of /save and /verify request payloads for troubleshooting. */
+	auditProofDebugRequests: boolean;
 }
