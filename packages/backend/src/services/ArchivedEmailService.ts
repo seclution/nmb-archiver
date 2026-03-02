@@ -20,6 +20,9 @@ import type { Readable } from 'stream';
 import { AuditService } from './AuditService';
 import { User } from '@open-archiver/types';
 import { checkDeletionEnabled } from '../helpers/deletionGuard';
+import { logger } from '../config/logger';
+import { SettingsService } from './SettingsService';
+import { AuditProofService } from './AuditProofService';
 
 interface DbRecipients {
 	to: { name: string; address: string }[];
@@ -155,6 +158,26 @@ export class ArchivedEmailService {
 		const rawStream = await storage.get(email.storagePath);
 		const raw = await streamToBuffer(rawStream as Readable);
 
+		let auditProofVerification = null;
+		try {
+			const settingsService = new SettingsService();
+			const systemSettings = await settingsService.getSystemSettings();
+			const auditProofService = new AuditProofService();
+			auditProofVerification = await auditProofService.verifyEmailHash(
+				systemSettings,
+				email.id,
+				email.storageHashSha256,
+				Math.floor(new Date(email.archivedAt).getTime() / 1000)
+			);
+		} catch (error) {
+			logger.warn({ emailId, error }, 'Failed to verify email hash with audit-proof backend');
+			auditProofVerification = {
+				res: 'ERROR',
+				msg: 'Audit-proof verification failed',
+				error: error instanceof Error ? error.message : 'Unknown error',
+			};
+		}
+
 		const mappedEmail = {
 			...email,
 			recipients: this.mapRecipients(email.recipients),
@@ -162,6 +185,7 @@ export class ArchivedEmailService {
 			thread: threadEmails,
 			tags: (email.tags as string[] | null) || null,
 			path: email.path || null,
+			auditProofVerification,
 		};
 
 		if (email.hasAttachments) {
