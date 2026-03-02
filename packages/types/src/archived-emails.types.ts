@@ -24,6 +24,19 @@ export interface ThreadEmail {
 	senderEmail: string;
 }
 
+export interface AuditProofVerificationLogItem {
+	res: string;
+	msg: string;
+}
+
+export interface AuditProofVerificationResult {
+	res: string;
+	msg: string;
+	log?: Record<string, AuditProofVerificationLogItem>;
+	httpStatus?: number;
+	error?: string;
+}
+
 /**
  * Represents a single archived email.
  */
@@ -49,6 +62,7 @@ export interface ArchivedEmail {
 	thread?: ThreadEmail[];
 	path: string | null;
 	tags: string[] | null;
+	auditProofVerification?: AuditProofVerificationResult | null;
 }
 
 /**

@@ -108,6 +108,49 @@
 				</div>
 
 				<div class="grid gap-2">
+					<Label.Root class="mb-1" for="auditProofInstanceId"
+						>Audit-proof instance ID</Label.Root
+					>
+					<Input
+						id="auditProofInstanceId"
+						name="auditProofInstanceId"
+						type="text"
+						placeholder="ArchiverInstanceKundeX"
+						bind:value={settings.auditProofInstanceId}
+						class="max-w-sm"
+					/>
+					<p class="text-muted-foreground text-xs">
+						Wird als Prefix für revisions-sichere IDs verwendet:
+						<code>{'{'}instanceId{'}'}:{'{'}mailId{'}'}</code>.
+					</p>
+				</div>
+
+				<div class="grid gap-2">
+					<Label.Root class="mb-1" for="auditProofInstanceServerAddr"
+						>Audit-proof server address</Label.Root
+					>
+					<Input
+						id="auditProofInstanceServerAddr"
+						name="auditProofInstanceServerAddr"
+						type="url"
+						placeholder="http://10.99.105.10"
+						bind:value={settings.auditProofInstanceServerAddr}
+						class="max-w-sm"
+					/>
+				</div>
+
+				<div class="flex items-center gap-2">
+					<input
+						id="auditProofDebugRequests"
+						name="auditProofDebugRequests"
+						type="checkbox"
+						bind:checked={settings.auditProofDebugRequests}
+					/>
+					<Label.Root for="auditProofDebugRequests"
+						>Debug logging für /save und /verify Requests</Label.Root
+					>
+				</div>
+				<div class="grid gap-2">
 					<Label.Root class="mb-1" for="supportEmail"
 						>{$t('app.system_settings.support_email')}</Label.Root
 					>
