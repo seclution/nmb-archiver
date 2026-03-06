@@ -31,6 +31,7 @@ import i18next from 'i18next';
 import FsBackend from 'i18next-fs-backend';
 import i18nextMiddleware from 'i18next-http-middleware';
 import path from 'path';
+import fs from 'fs';
 import { logger } from '../config/logger';
 import { rateLimiter } from './middleware/rateLimiter';
 import { config } from '../config';
@@ -160,6 +161,16 @@ export async function createServer(modules: ArchiverModule[] = []): Promise<Expr
 		await module.initialize(app, authService);
 		console.log(`🏢 Enterprise module loaded: ${module.name}`);
 	}
+
+	app.get('/opensource/source.zip', (req, res) => {
+		const sourceArchivePath = path.resolve(process.cwd(), 'public/nmb-archiver-source.zip');
+		if (!fs.existsSync(sourceArchivePath)) {
+			return res.status(404).json({ message: 'Source archive not available.' });
+		}
+
+		return res.download(sourceArchivePath, 'nmb-archiver-source.zip');
+	});
+
 	app.get('/', (req, res) => {
 		res.send('Backend is running!!');
 	});

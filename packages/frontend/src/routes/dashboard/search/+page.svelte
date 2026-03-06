@@ -127,7 +127,7 @@
 </script>
 
 <svelte:head>
-	<title>{$t('app.search.title')} | Open Archiver</title>
+	<title>{$t('app.search.title')} | NMB Archiver</title>
 	<meta name="description" content={$t('app.search.description')} />
 </svelte:head>
 

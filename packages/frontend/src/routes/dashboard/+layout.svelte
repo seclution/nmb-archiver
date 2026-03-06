@@ -128,8 +128,8 @@
 <header class="bg-background sticky top-0 z-40 border-b px-4 md:px-0">
 	<div class="container mx-auto flex h-16 flex-row items-center justify-between">
 		<a href="/dashboard" class="flex flex-row items-center gap-2 font-bold">
-			<img src="/logos/logo-sq.svg" alt="OpenArchiver Logo" class="h-8 w-8" />
-			<span class="hidden sm:inline-block">Open Archiver</span>
+			<img src="/logos/logo-sq.svg" alt="NMB Archiver Logo" class="h-8 w-8" />
+			<span class="hidden sm:inline-block">NMB Archiver</span>
 		</a>
 
 		<!-- Desktop Navigation -->

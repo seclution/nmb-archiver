@@ -14,7 +14,7 @@ async function start() {
 	const app = await createServer([]);
 
 	app.listen(PORT_BACKEND, () => {
-		logger.info({}, `✅ Open Archiver (OSS) running on port ${PORT_BACKEND}`);
+		logger.info({}, `✅ NMB Archiver (OSS) running on port ${PORT_BACKEND}`);
 	});
 }
 
