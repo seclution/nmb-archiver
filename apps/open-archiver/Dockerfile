@@ -19,6 +19,7 @@ COPY apps/open-archiver/package.json ./apps/open-archiver/
 
 # 1. Build Stage: Install all dependencies and build the project
 FROM base AS build
+RUN apk add --no-cache zip
 COPY packages/frontend/svelte.config.js ./packages/frontend/
 
 # Install all dependencies.
@@ -32,6 +33,14 @@ COPY . .
 # Build the OSS packages.
 RUN pnpm build:oss
 
+# Create a distributable source archive for AGPL network users.
+RUN zip -r /tmp/nmb-archiver-source.zip . \
+    -x "node_modules/*" \
+    -x ".git/*" \
+    -x "packages/frontend/.svelte-kit/*" \
+    -x "packages/frontend/build/*" \
+    -x "**/dist/*"
+
 # 2. Production Stage: Install only production dependencies and copy built artifacts
 FROM base AS production
 
@@ -42,6 +51,7 @@ COPY --from=build /app/packages/backend/src/database/migrations ./packages/backe
 COPY --from=build /app/packages/frontend/build ./packages/frontend/build
 COPY --from=build /app/packages/types/dist ./packages/types/dist
 COPY --from=build /app/apps/open-archiver/dist ./apps/open-archiver/dist
+COPY --from=build /tmp/nmb-archiver-source.zip ./public/nmb-archiver-source.zip
 
 # Copy the entrypoint script and make it executable
 COPY docker/docker-entrypoint.sh /usr/local/bin/

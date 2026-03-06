@@ -23,6 +23,13 @@
 	let isDeleting = $state(false);
 	let auditProofVerification = $derived(email?.auditProofVerification);
 	let auditProofPassed = $derived(auditProofVerification?.res === 'PASSED');
+	const auditProofPendingStates = ['NOT_FOUND', 'TOO_EARLY'];
+	let auditProofIsPending = $derived(
+		auditProofVerification ? auditProofPendingStates.includes(auditProofVerification.res) : false
+	);
+	let archivalUnixTimestamp = $derived(
+		email?.archivedAt ? Math.floor(new Date(email.archivedAt).getTime() / 1000) : null
+	);
 
 	async function download(path: string, filename: string) {
 		if (!browser) return;
@@ -80,26 +87,42 @@
 </script>
 
 <svelte:head>
-	<title>{email?.subject} | {$t('app.archive.title')} - OpenArchiver</title>
+	<title>{email?.subject} | {$t('app.archive.title')} - NMB Archiver</title>
 </svelte:head>
 
 {#if email}
 	<div class="space-y-4">
 		{#if auditProofVerification}
 			<Alert.Root
-				variant={auditProofPassed ? 'default' : 'destructive'}
-				class={auditProofPassed ? 'border-green-500 bg-green-50 text-green-900' : ''}
+				variant={auditProofPassed ? 'default' : auditProofIsPending ? 'default' : 'destructive'}
+				class={auditProofPassed
+					? 'border-green-500 bg-green-50 text-green-900'
+					: auditProofIsPending
+						? 'border-yellow-400 bg-yellow-50 text-yellow-900'
+						: ''}
 			>
 				{#if auditProofPassed}
 					<ShieldCheck class="h-4 w-4" />
 					<Alert.Title>Revisionsprüfung erfolgreich</Alert.Title>
+				{:else if auditProofIsPending}
+					<AlertTriangle class="h-4 w-4" />
+					<Alert.Title
+						>Revisionsprüfung ausstehend ({auditProofVerification.res})</Alert.Title
+					>
 				{:else}
 					<ShieldAlert class="h-4 w-4" />
 					<Alert.Title
 						>Revisionsprüfung nicht erfolgreich ({auditProofVerification.res})</Alert.Title
 					>
 				{/if}
-				<Alert.Description>{auditProofVerification.msg}</Alert.Description>
+				<Alert.Description>
+					{auditProofVerification.msg}
+					{#if email?.archivedAt && archivalUnixTimestamp}
+						<br />
+						Revisionssichere Speicherung: {new Date(email.archivedAt).toLocaleString()} (Unix:
+						{archivalUnixTimestamp})
+					{/if}
+				</Alert.Description>
 			</Alert.Root>
 		{/if}
 

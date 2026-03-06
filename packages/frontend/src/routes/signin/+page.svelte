@@ -51,8 +51,8 @@
 </script>
 
 <svelte:head>
-	<title>{$t('app.auth.login')} - Open Archiver</title>
-	<meta name="description" content="Login to your Open Archiver account." />
+	<title>{$t('app.auth.login')} - NMB Archiver</title>
+	<meta name="description" content="Login to your NMB Archiver account." />
 </svelte:head>
 
 <div
@@ -60,12 +60,12 @@
 >
 	<div>
 		<a
-			href="https://openarchiver.com/"
+			href="/"
 			target="_blank"
 			class="flex flex-row items-center gap-2 font-bold"
 		>
-			<img src="/logos/logo-sq.svg" alt="OpenArchiver Logo" class="h-16 w-16" />
-			<span class="text-2xl">Open Archiver</span>
+			<img src="/logos/logo-sq.svg" alt="NMB Archiver Logo" class="h-16 w-16" />
+			<span class="text-2xl">NMB Archiver</span>
 		</a>
 	</div>
 	<Card.Root class="w-full max-w-md">
@@ -74,6 +74,11 @@
 			<Card.Description>{$t('app.auth.login_tip')}</Card.Description>
 		</Card.Header>
 		<Card.Content class="grid gap-4">
+
+			<p class="text-muted-foreground text-center text-xs">
+				Die Quelldateien dieses Open-Source-Projekts finden Sie
+				<a class="underline" href="/opensource/source.zip">hier</a>.
+			</p>
 			<form onsubmit={handleSubmit} class="grid gap-4">
 				<div class="grid gap-2">
 					<Label for="email">{$t('app.auth.email')}</Label>
