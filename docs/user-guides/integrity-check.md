@@ -1,39 +1,28 @@
 # Integrity Check
 
-Open Archiver allows you to verify the integrity of your archived emails and their attachments. This guide explains how the integrity check works and what the results mean.
+Open Archiver verifies archived email integrity using a canonical manifest and a root hash.
 
-## How It Works
+## What is verified
 
-When an email is archived, Open Archiver calculates a unique cryptographic signature (a SHA256 hash) for the email's raw `.eml` file and for each of its attachments. These signatures are stored in the database alongside the email's metadata.
+For each archived email, Open Archiver builds a canonical manifest with:
 
-The integrity check feature recalculates these signatures for the stored files and compares them to the original signatures stored in the database. This process allows you to verify that the content of your archived emails has not been altered, corrupted, or tampered with since the moment they were archived.
+- SHA256 of the `.eml` file
+- sorted attachment entries with stable fields:
+    - `filename`
+    - `sizeBytes`
+    - `contentHashSha256`
 
-During a single verification run, the raw `.eml` is read once and its SHA256 hash is computed once. Open Archiver then reuses that one hash for both the local integrity comparison and (if enabled) the audit-proof verification.
+From that manifest, Open Archiver computes `verificationRootHash` (SHA256).
 
-## The Integrity Report
+## Local + external verification
 
-When you view an email in the Open Archiver interface, an integrity report is automatically generated and displayed. This report provides a clear, at-a-glance status for the email file and each of its attachments.
+When you run verification, Open Archiver:
 
-### Statuses
+1. re-hashes `.eml` and attachments,
+2. rebuilds the same canonical manifest,
+3. recalculates `verificationRootHash`,
+4. performs:
+    - `localIntegrity`: file content vs database hashes
+    - `externalProof`: root hash vs audit-proof backend (`/verify`)
 
-- **Valid (Green Badge):** A "Valid" status means that the current signature of the file matches the original signature stored in the database. This is the expected status and indicates that the file's integrity is intact.
-
-- **Invalid (Red Badge):** An "Invalid" status means that the current signature of the file does _not_ match the original signature. This indicates that the file's content has changed since it was archived.
-
-### Reasons for an "Invalid" Status
-
-If a file is marked as "Invalid," you can hover over the badge to see a reason for the failure. Common reasons include:
-
-- **Stored hash does not match current hash:** This is the most common reason and indicates that the file's content has been modified. This could be due to accidental changes, data corruption, or unauthorized tampering.
-
-- **Could not read attachment file from storage:** This message indicates that the file could not be read from its storage location. This could be due to a storage system issue, a file permission problem, or because the file has been deleted.
-
-## What to Do If an Integrity Check Fails
-
-If you encounter an "Invalid" status for an email or attachment, it is important to investigate the issue. Here are some steps you can take:
-
-1.  **Check Storage:** Verify that the file exists in its storage location and that its permissions are correct.
-2.  **Review Audit Logs:** If you have audit logging enabled, review the logs for any unauthorized access or modifications to the file.
-3.  **Restore from Backup:** If you suspect data corruption, you may need to restore the affected file from a backup.
-
-The integrity check feature is a crucial tool for ensuring the long-term reliability and trustworthiness of your email archive. By regularly monitoring the integrity of your archived data, you can be confident that your records are accurate and complete.
+So “not manipulated” explicitly means both email and attachments are unchanged and this can be externally backed by audit-proof verification of the root hash.
