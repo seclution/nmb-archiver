@@ -169,6 +169,13 @@
 			"when": 1760354094610,
 			"tag": "0023_swift_swordsman",
 			"breakpoints": true
+		},
+		{
+			"idx": 24,
+			"version": "7",
+			"when": 1773168867450,
+			"tag": "0024_canonical_verification_root_hash",
+			"breakpoints": true
 		}
 	]
 }

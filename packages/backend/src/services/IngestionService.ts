@@ -22,6 +22,10 @@ import {
 } from '../database/schema';
 import { createHash, randomUUID } from 'crypto';
 import { logger } from '../config/logger';
+import {
+	buildVerificationManifest,
+	computeVerificationRootHash,
+} from '../helpers/verificationManifest';
 import { SearchService } from './SearchService';
 import { config } from '../config/index';
 import { FilterBuilder } from './FilterBuilder';
@@ -453,17 +457,11 @@ export class IngestionService {
 				})
 				.returning();
 
-			try {
-				const settingsService = new SettingsService();
-				const systemSettings = await settingsService.getSystemSettings();
-				const auditProofService = new AuditProofService();
-				await auditProofService.saveEmailHash(systemSettings, archivedEmail.id, emailHash);
-			} catch (error) {
-				logger.warn(
-					{ archivedEmailId: archivedEmail.id, error },
-					'Failed to push email hash to audit-proof backend'
-				);
-			}
+			const archivedAttachmentManifestEntries: {
+				filename: string;
+				sizeBytes: number;
+				contentHashSha256: string;
+			}[] = [];
 
 			if (email.attachments.length > 0) {
 				for (const attachment of email.attachments) {
@@ -530,7 +528,40 @@ export class IngestionService {
 							attachmentId: attachmentRecord.id,
 						})
 						.onConflictDoNothing();
+
+					archivedAttachmentManifestEntries.push({
+						filename: attachmentRecord.filename,
+						sizeBytes: attachmentRecord.sizeBytes,
+						contentHashSha256: attachmentRecord.contentHashSha256,
+					});
 				}
+			}
+
+			const verificationManifest = buildVerificationManifest(
+				emailHash,
+				archivedAttachmentManifestEntries
+			);
+			const verificationRootHash = computeVerificationRootHash(verificationManifest);
+
+			await db
+				.update(archivedEmails)
+				.set({ verificationRootHash })
+				.where(eq(archivedEmails.id, archivedEmail.id));
+
+			try {
+				const settingsService = new SettingsService();
+				const systemSettings = await settingsService.getSystemSettings();
+				const auditProofService = new AuditProofService();
+				await auditProofService.saveEmailHash(
+					systemSettings,
+					archivedEmail.id,
+					verificationRootHash
+				);
+			} catch (error) {
+				logger.warn(
+					{ archivedEmailId: archivedEmail.id, error },
+					'Failed to push email verification root hash to audit-proof backend'
+				);
 			}
 
 			return {

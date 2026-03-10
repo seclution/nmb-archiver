@@ -19,6 +19,7 @@ export const archivedEmails = pgTable(
 		recipients: jsonb('recipients'),
 		storagePath: text('storage_path').notNull(),
 		storageHashSha256: text('storage_hash_sha256').notNull(),
+		verificationRootHash: text('verification_root_hash'),
 		sizeBytes: bigint('size_bytes', { mode: 'number' }).notNull(),
 		isIndexed: boolean('is_indexed').notNull().default(false),
 		hasAttachments: boolean('has_attachments').notNull().default(false),
