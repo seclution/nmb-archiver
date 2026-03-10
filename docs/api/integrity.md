@@ -1,6 +1,20 @@
 # Integrity Check API
 
-The Integrity Check API provides an endpoint to verify the cryptographic hash of an archived email and its attachments against the stored values in the database. This allows you to ensure that the stored files have not been tampered with or corrupted since they were archived.
+The Integrity Check API provides endpoints to verify the cryptographic hash of an archived email and its attachments against the stored values in the database. This allows you to ensure that the stored files have not been tampered with or corrupted since they were archived.
+
+For each verification run, Open Archiver reads the `.eml` file exactly once and computes the SHA256 exactly once. The resulting hash is reused for both local DB comparison (`storageHashSha256`) and (when requested) audit-proof verification.
+
+## Get Archived Email (with Optional Verification)
+
+Returns archived email details. Optionally, it can include a `verification` object that contains the local integrity result for the `.eml` file and the audit-proof verification result.
+
+- **URL:** `/api/v1/archived-emails/:id?includeVerification=true`
+- **Method:** `GET`
+- **URL Params:**
+    - `id=[string]` (required) - The UUID of the archived email.
+- **Query Params:**
+    - `includeVerification=[boolean]` (optional) - When `true`, verification data is included.
+- **Permissions:** `read:archive`
 
 ## Check Email Integrity
 
@@ -11,6 +25,7 @@ Verifies the integrity of a specific archived email and all of its associated at
 - **URL Params:**
     - `id=[string]` (required) - The UUID of the archived email to check.
 - **Permissions:** `read:archive`
+- **Implementation note:** The email file hash is generated once per request and reused internally.
 - **Success Response:**
     - **Code:** 200 OK
     - **Content:** `IntegrityCheckResult[]`

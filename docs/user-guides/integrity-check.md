@@ -8,6 +8,8 @@ When an email is archived, Open Archiver calculates a unique cryptographic signa
 
 The integrity check feature recalculates these signatures for the stored files and compares them to the original signatures stored in the database. This process allows you to verify that the content of your archived emails has not been altered, corrupted, or tampered with since the moment they were archived.
 
+During a single verification run, the raw `.eml` is read once and its SHA256 hash is computed once. Open Archiver then reuses that one hash for both the local integrity comparison and (if enabled) the audit-proof verification.
+
 ## The Integrity Report
 
 When you view an email in the Open Archiver interface, an integrity report is automatically generated and displayed. This report provides a clear, at-a-glance status for the email file and each of its attachments.

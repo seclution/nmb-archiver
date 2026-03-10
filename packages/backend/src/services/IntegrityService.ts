@@ -6,9 +6,11 @@ import { createHash } from 'crypto';
 import { logger } from '../config/logger';
 import type { IntegrityCheckResult } from '@open-archiver/types';
 import { streamToBuffer } from '../helpers/streamToBuffer';
+import { EmailVerificationService } from './EmailVerificationService';
 
 export class IntegrityService {
 	private storageService = new StorageService();
+	private emailVerificationService = new EmailVerificationService();
 
 	public async checkEmailIntegrity(emailId: string): Promise<IntegrityCheckResult[]> {
 		const results: IntegrityCheckResult[] = [];
@@ -23,20 +25,8 @@ export class IntegrityService {
 		}
 
 		// 2. Check the email's integrity
-		const emailStream = await this.storageService.get(email.storagePath);
-		const emailBuffer = await streamToBuffer(emailStream);
-		const currentEmailHash = createHash('sha256').update(emailBuffer).digest('hex');
-
-		if (currentEmailHash === email.storageHashSha256) {
-			results.push({ type: 'email', id: email.id, isValid: true });
-		} else {
-			results.push({
-				type: 'email',
-				id: email.id,
-				isValid: false,
-				reason: 'Stored hash does not match current hash.',
-			});
-		}
+		const emailVerification = await this.emailVerificationService.verifyEmail(email);
+		results.push(emailVerification.localIntegrityResult);
 
 		// 3. If the email has attachments, check them
 		if (email.hasAttachments) {

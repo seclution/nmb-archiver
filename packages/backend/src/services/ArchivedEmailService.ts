@@ -16,13 +16,10 @@ import type {
 } from '@open-archiver/types';
 import { StorageService } from './StorageService';
 import { SearchService } from './SearchService';
-import type { Readable } from 'stream';
 import { AuditService } from './AuditService';
 import { User } from '@open-archiver/types';
 import { checkDeletionEnabled } from '../helpers/deletionGuard';
-import { logger } from '../config/logger';
-import { SettingsService } from './SettingsService';
-import { AuditProofService } from './AuditProofService';
+import { EmailVerificationService } from './EmailVerificationService';
 
 interface DbRecipients {
 	to: { name: string; address: string }[];
@@ -30,17 +27,9 @@ interface DbRecipients {
 	bcc: { name: string; address: string }[];
 }
 
-async function streamToBuffer(stream: Readable): Promise<Buffer> {
-	return new Promise((resolve, reject) => {
-		const chunks: Buffer[] = [];
-		stream.on('data', (chunk) => chunks.push(chunk));
-		stream.on('error', reject);
-		stream.on('end', () => resolve(Buffer.concat(chunks)));
-	});
-}
-
 export class ArchivedEmailService {
 	private static auditService = new AuditService();
+	private static emailVerificationService = new EmailVerificationService();
 	private static mapRecipients(dbRecipients: unknown): Recipient[] {
 		const { to = [], cc = [], bcc = [] } = dbRecipients as DbRecipients;
 
@@ -107,7 +96,8 @@ export class ArchivedEmailService {
 		emailId: string,
 		userId: string,
 		actor: User,
-		actorIp: string
+		actorIp: string,
+		options?: { includeVerification?: boolean }
 	): Promise<ArchivedEmail | null> {
 		const email = await db.query.archivedEmails.findFirst({
 			where: eq(archivedEmails.id, emailId),
@@ -154,38 +144,23 @@ export class ArchivedEmailService {
 			});
 		}
 
-		const storage = new StorageService();
-		const rawStream = await storage.get(email.storagePath);
-		const raw = await streamToBuffer(rawStream as Readable);
-
-		let auditProofVerification = null;
-		try {
-			const settingsService = new SettingsService();
-			const systemSettings = await settingsService.getSystemSettings();
-			const auditProofService = new AuditProofService();
-			auditProofVerification = await auditProofService.verifyEmailHash(
-				systemSettings,
-				email.id,
-				email.storageHashSha256,
-				Math.floor(new Date(email.archivedAt).getTime() / 1000)
-			);
-		} catch (error) {
-			logger.warn({ emailId, error }, 'Failed to verify email hash with audit-proof backend');
-			auditProofVerification = {
-				res: 'ERROR',
-				msg: 'Audit-proof verification failed',
-				error: error instanceof Error ? error.message : 'Unknown error',
-			};
-		}
+		const verification = options?.includeVerification
+			? await this.emailVerificationService.verifyEmail(email, { includeAuditProof: true })
+			: null;
 
 		const mappedEmail = {
 			...email,
 			recipients: this.mapRecipients(email.recipients),
-			raw,
+			raw: verification?.raw,
 			thread: threadEmails,
 			tags: (email.tags as string[] | null) || null,
 			path: email.path || null,
-			auditProofVerification,
+			auditProofVerification: verification?.auditProofVerification,
+			verification: verification
+				? {
+						integrityReport: [verification.localIntegrityResult],
+					}
+				: undefined,
 		};
 
 		if (email.hasAttachments) {

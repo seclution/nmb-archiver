@@ -1,3 +1,5 @@
+import type { EmailVerificationSummary } from './integrity.types';
+
 /**
  * Represents a single recipient of an email.
  */
@@ -63,6 +65,7 @@ export interface ArchivedEmail {
 	path: string | null;
 	tags: string[] | null;
 	auditProofVerification?: AuditProofVerificationResult | null;
+	verification?: EmailVerificationSummary;
 }
 
 /**

@@ -32,6 +32,7 @@ export class ArchivedEmailController {
 	public getArchivedEmailById = async (req: Request, res: Response): Promise<Response> => {
 		try {
 			const { id } = req.params;
+			const includeVerification = req.query.includeVerification === 'true';
 			const userId = req.user?.sub;
 
 			if (!userId) {
@@ -46,7 +47,8 @@ export class ArchivedEmailController {
 				id,
 				userId,
 				actor,
-				req.ip || 'unknown'
+				req.ip || 'unknown',
+				{ includeVerification }
 			);
 			if (!email) {
 				return res.status(404).json({ message: req.t('archivedEmail.notFound') });
