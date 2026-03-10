@@ -504,24 +504,16 @@ export class IngestionService {
 						),
 					});
 
-					let storagePath: string;
-
 					if (existingAttachment) {
 						// If it exists, reuse the storage path and don't save the file again
-						storagePath = existingAttachment.storagePath;
 						logger.info(
 							{
 								attachmentHash,
 								ingestionSourceId: source.id,
-								reusedPath: storagePath,
+								reusedPath: existingAttachment.storagePath,
 							},
 							'Reusing existing attachment file for deduplication.'
 						);
-					} else {
-						// If it's a new attachment, create a unique path and save it
-						const uniqueId = randomUUID().slice(0, 7);
-						storagePath = `${config.storage.openArchiverFolderName}/${source.name.replaceAll(' ', '-')}-${source.id}/attachments/${uniqueId}-${attachment.filename}`;
-						await storage.put(storagePath, attachmentBuffer);
 					}
 
 					let attachmentRecord = existingAttachment;
