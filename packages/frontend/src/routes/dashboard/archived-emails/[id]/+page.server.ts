@@ -6,11 +6,7 @@ import type { ArchivedEmail, IntegrityCheckResult } from '@open-archiver/types';
 export const load: PageServerLoad = async (event) => {
 	try {
 		const { id } = event.params;
-
-		const [emailResponse, integrityResponse] = await Promise.all([
-			api(`/archived-emails/${id}`, event),
-			api(`/integrity/${id}`, event),
-		]);
+		const emailResponse = await api(`/archived-emails/${id}?includeVerification=true`, event);
 
 		if (!emailResponse.ok) {
 			const responseText = await emailResponse.json();
@@ -20,16 +16,8 @@ export const load: PageServerLoad = async (event) => {
 			);
 		}
 
-		if (!integrityResponse.ok) {
-			const responseText = await integrityResponse.json();
-			return error(
-				integrityResponse.status,
-				responseText.message || 'Failed to perform integrity check.'
-			);
-		}
-
 		const email: ArchivedEmail = await emailResponse.json();
-		const integrityReport: IntegrityCheckResult[] = await integrityResponse.json();
+		const integrityReport: IntegrityCheckResult[] = email.verification?.integrityReport ?? [];
 
 		return {
 			email,

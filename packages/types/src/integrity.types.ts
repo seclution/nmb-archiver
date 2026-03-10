@@ -5,3 +5,7 @@ export interface IntegrityCheckResult {
 	isValid: boolean;
 	reason?: string;
 }
+
+export interface EmailVerificationSummary {
+	integrityReport: IntegrityCheckResult[];
+}
