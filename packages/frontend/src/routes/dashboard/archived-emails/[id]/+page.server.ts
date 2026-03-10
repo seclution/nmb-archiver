@@ -17,7 +17,8 @@ export const load: PageServerLoad = async (event) => {
 		}
 
 		const email: ArchivedEmail = await emailResponse.json();
-		const integrityReport: IntegrityCheckResult[] = email.verification?.integrityReport ?? [];
+		const integrityReport: IntegrityCheckResult[] =
+			email.verification?.localIntegrity?.integrityReport ?? [];
 
 		return {
 			email,

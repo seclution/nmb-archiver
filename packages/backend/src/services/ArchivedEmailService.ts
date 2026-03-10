@@ -147,7 +147,6 @@ export class ArchivedEmailService {
 		const verification = options?.includeVerification
 			? await this.emailVerificationService.verifyEmail(email, { includeAuditProof: true })
 			: null;
-
 		const mappedEmail = {
 			...email,
 			recipients: this.mapRecipients(email.recipients),
@@ -156,9 +155,16 @@ export class ArchivedEmailService {
 			tags: (email.tags as string[] | null) || null,
 			path: email.path || null,
 			auditProofVerification: verification?.auditProofVerification,
+			localIntegrity: verification?.localIntegrity,
+			externalProof: verification?.externalProof,
+			verificationRootHash:
+				verification?.verificationRootHash ?? email.verificationRootHash ?? undefined,
 			verification: verification
 				? {
-						integrityReport: [verification.localIntegrityResult],
+						manifest: verification.manifest,
+						verificationRootHash: verification.verificationRootHash,
+						localIntegrity: verification.localIntegrity,
+						externalProof: verification.externalProof,
 					}
 				: undefined,
 		};
