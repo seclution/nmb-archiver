@@ -1,6 +1,8 @@
 # @open-archiver/types
 
-This package contains shared TypeScript type definitions for the Open Archiver project.
+This package contains shared TypeScript type definitions used by the NMB Archiver fork.
+
+The package scope remains `@open-archiver/types` for compatibility with the existing codebase and published consumers.
 
 ## Installation
 

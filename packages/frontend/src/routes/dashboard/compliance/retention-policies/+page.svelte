@@ -67,7 +67,7 @@
 </script>
 
 <svelte:head>
-	<title>{$t('app.retention_policies.title')} - Open Archiver</title>
+	<title>{$t('app.retention_policies.title')} - NMB Archiver</title>
 	<meta name="description" content={$t('app.retention_policies.meta_description')} />
 	<meta
 		name="keywords"

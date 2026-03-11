@@ -148,7 +148,7 @@
 		},
 		"setup": {
 			"title": "Configuración",
-			"description": "Configure la cuenta de administrador inicial para Open Archiver.",
+			"description": "Configure la cuenta de administrador inicial para NMB Archiver.",
 			"welcome": "Bienvenido",
 			"create_admin_account": "Cree la primera cuenta de administrador para comenzar.",
 			"first_name": "Nombre",

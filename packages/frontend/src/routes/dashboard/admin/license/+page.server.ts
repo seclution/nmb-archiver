@@ -7,7 +7,7 @@ export const load: PageServerLoad = async (event) => {
 	if (!event.locals.enterpriseMode) {
 		throw error(
 			403,
-			'This feature is only available in the Enterprise Edition. Please contact Open Archiver to upgrade.'
+			'This feature is only available in the Enterprise Edition. Please contact NMB Archiver to upgrade.'
 		);
 	}
 	try {

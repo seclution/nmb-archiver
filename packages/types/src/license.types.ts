@@ -1,5 +1,5 @@
 /**
- * Features of Open Archiver Enterprise
+ * Features of NMB Archiver Enterprise
  */
 export enum OpenArchiverFeature {
 	AUDIT_LOG = 'audit-log',
@@ -29,7 +29,7 @@ export interface LicensePingRequest {
 	licenseId: string;
 	/** Current number of unique archived mailboxes on this instance. */
 	activeSeats: number;
-	/** Version string of the running Open Archiver instance. */
+	/** Version string of the running NMB Archiver instance. */
 	version: string;
 }
 

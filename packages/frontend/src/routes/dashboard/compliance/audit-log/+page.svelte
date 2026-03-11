@@ -93,7 +93,7 @@
 </script>
 
 <svelte:head>
-	<title>{$t('app.audit_log.title')} - OpenArchiver</title>
+	<title>{$t('app.audit_log.title')} - NMB Archiver</title>
 </svelte:head>
 
 <div class="mb-4 flex items-center justify-between">

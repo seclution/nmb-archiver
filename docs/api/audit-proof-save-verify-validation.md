@@ -166,7 +166,7 @@ Für die Beweiskette sind die zentralen Garantien:
 Die aktuelle Audit-Proof-Integration deckt extern nur `save` und `verify` ab. Für Löschungen gibt es derzeit keinen separaten `/delete`- oder Tombstone-Call an das Audit-Proof-Backend.
 
 Trotzdem werden Löschungen nicht spurlos:
-- Vor der physischen Löschung schreibt Open Archiver einen Audit-Log-Eintrag.
+- Vor der physischen Löschung schreibt NMB Archiver einen Audit-Log-Eintrag.
 - Dieser Eintrag enthält belastbare Evidenz zum Objekt:
   - `messageIdHeader`
   - `storageHashSha256`

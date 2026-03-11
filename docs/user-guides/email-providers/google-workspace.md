@@ -15,7 +15,7 @@ The setup process involves three main parts:
 
 1.  Configuring the necessary permissions in the Google Cloud Console.
 2.  Authorizing the service account in the Google Workspace Admin Console.
-3.  Entering the generated credentials into the OpenArchiver application.
+3.  Entering the generated credentials into the NMB Archiver application.
 
 ---
 
@@ -96,7 +96,7 @@ The service account is now permitted to list users and read their email data acr
 
 ---
 
-### Part 3: Connecting in OpenArchiver
+### Part 3: Connecting in NMB Archiver
 
 Finally, you will provide the generated credentials to the application.
 

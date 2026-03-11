@@ -4,7 +4,7 @@ The Jobs API provides endpoints for monitoring the job queues and the jobs withi
 
 ## Overview
 
-Open Archiver uses a job queue system to handle asynchronous tasks like email ingestion and indexing. The system is built on Redis and BullMQ and uses a producer-consumer pattern.
+NMB Archiver uses a job queue system to handle asynchronous tasks like email ingestion and indexing. The system is built on Redis and BullMQ and uses a producer-consumer pattern.
 
 ### Job Statuses
 

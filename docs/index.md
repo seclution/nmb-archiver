@@ -1,12 +1,12 @@
 # Get Started 👋
 
-Welcome to Open Archiver! This guide will help you get started with setting up and using the platform.
+Welcome to NMB Archiver! This guide will help you get started with setting up and using the platform.
 
-## What is Open Archiver? 🛡️
+## What is NMB Archiver? 🛡️
 
 **A secure, sovereign, and affordable open-source platform for email archiving and eDiscovery.**
 
-Open Archiver provides a robust, self-hosted solution for archiving, storing, indexing, and searching emails from major platforms, including Google Workspace (Gmail), Microsoft 365, as well as generic IMAP-enabled email inboxes. Use Open Archiver to keep a permanent, tamper-proof record of your communication history, free from vendor lock-in.
+NMB Archiver provides a robust, self-hosted solution for archiving, storing, indexing, and searching emails from major platforms, including Google Workspace (Gmail), Microsoft 365, as well as generic IMAP-enabled email inboxes. Use NMB Archiver to keep a permanent, tamper-proof record of your communication history, free from vendor lock-in.
 
 ## Key Features ✨
 
@@ -19,7 +19,7 @@ Open Archiver provides a robust, self-hosted solution for archiving, storing, in
 
 ## Installation 🚀
 
-To get your own instance of Open Archiver running, follow our detailed installation guide:
+To get your own instance of NMB Archiver running, follow our detailed installation guide:
 
 - [Installation Guide](./user-guides/installation.md)
 

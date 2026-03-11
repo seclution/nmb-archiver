@@ -1,6 +1,6 @@
 # Audit Log: User Interface
 
-The audit log user interface provides a comprehensive view of all significant events that have occurred within the Open Archiver system. It is designed to be intuitive and user-friendly, allowing administrators to easily monitor and review system activity.
+The audit log user interface provides a comprehensive view of all significant events that have occurred within the NMB Archiver system. It is designed to be intuitive and user-friendly, allowing administrators to easily monitor and review system activity.
 
 ## Viewing Audit Logs
 

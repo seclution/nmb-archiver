@@ -20,7 +20,7 @@
 </script>
 
 <svelte:head>
-	<title>{$t('app.dashboard_page.title')} - OpenArchiver</title>
+	<title>{$t('app.dashboard_page.title')} - NMB Archiver</title>
 	<meta name="description" content={$t('app.dashboard_page.meta_description')} />
 </svelte:head>
 

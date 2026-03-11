@@ -148,7 +148,7 @@
 		},
 		"setup": {
 			"title": "Installatie",
-			"description": "Stel het initiële beheerdersaccount in voor Open Archiver.",
+			"description": "Stel het initiële beheerdersaccount in voor NMB Archiver.",
 			"welcome": "Welkom",
 			"create_admin_account": "Maak het eerste beheerdersaccount aan om te beginnen.",
 			"first_name": "Voornaam",

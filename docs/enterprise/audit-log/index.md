@@ -1,6 +1,6 @@
 # Audit Log
 
-The Audit Log is an enterprise-grade feature designed to provide a complete, immutable, and verifiable record of every significant action that occurs within the Open Archiver system. Its primary purpose is to ensure compliance with strict regulatory standards, such as the German GoBD, by establishing a tamper-proof chain of evidence for all activities.
+The Audit Log is an enterprise-grade feature designed to provide a complete, immutable, and verifiable record of every significant action that occurs within the NMB Archiver system. Its primary purpose is to ensure compliance with strict regulatory standards, such as the German GoBD, by establishing a tamper-proof chain of evidence for all activities.
 
 ## Core Principles
 
