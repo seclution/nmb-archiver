@@ -228,13 +228,34 @@ export class ArchivedEmailService {
 			throw new Error('Archived email not found');
 		}
 
+		const authorizationService = new AuthorizationService();
+		const canDeleteEmail = await authorizationService.can(actor.id, 'delete', 'archive', email);
+		if (!canDeleteEmail) {
+			throw new Error('Not authorized to delete archived email');
+		}
+
 		const storage = new StorageService();
+		const attachmentsForAudit = email.hasAttachments
+			? await db
+					.select({
+						attachmentId: attachments.id,
+						filename: attachments.filename,
+						sizeBytes: attachments.sizeBytes,
+						contentHashSha256: attachments.contentHashSha256,
+					})
+					.from(emailAttachments)
+					.innerJoin(attachments, eq(emailAttachments.attachmentId, attachments.id))
+					.where(eq(emailAttachments.emailId, emailId))
+			: [];
 
 		// Load and handle attachments before deleting the email itself
 		if (email.hasAttachments) {
 			const attachmentsForEmail = await db
 				.select({
 					attachmentId: attachments.id,
+					filename: attachments.filename,
+					sizeBytes: attachments.sizeBytes,
+					contentHashSha256: attachments.contentHashSha256,
 					storagePath: attachments.storagePath,
 				})
 				.from(emailAttachments)
@@ -285,6 +306,24 @@ export class ArchivedEmailService {
 		// for GoBD compliance; manual deletions record only the reason.
 		const auditDetails: Record<string, unknown> = {
 			reason: options.systemDelete ? 'RetentionExpiration' : 'ManualDeletion',
+			evidence: {
+				messageIdHeader: email.messageIdHeader,
+				subject: email.subject,
+				senderEmail: email.senderEmail,
+				sentAt: email.sentAt,
+				archivedAt: email.archivedAt,
+				ingestionSourceId: email.ingestionSourceId,
+				sizeBytes: email.sizeBytes,
+				storageHashSha256: email.storageHashSha256,
+				verificationRootHash: email.verificationRootHash ?? null,
+				hadAttachments: email.hasAttachments,
+				attachments: attachmentsForAudit.map((attachment) => ({
+					attachmentId: attachment.attachmentId,
+					filename: attachment.filename,
+					sizeBytes: attachment.sizeBytes,
+					contentHashSha256: attachment.contentHashSha256,
+				})),
+			},
 		};
 		if (options.systemDelete && options.governingRule) {
 			auditDetails.governingRule = options.governingRule;

@@ -80,6 +80,9 @@ export class ArchivedEmailController {
 				if (error.message === 'Archived email not found') {
 					return res.status(404).json({ message: req.t('archivedEmail.notFound') });
 				}
+				if (error.message === 'Not authorized to delete archived email') {
+					return res.status(403).json({ message: req.t('errors.noPermissionToAction') });
+				}
 				return res.status(500).json({ message: error.message });
 			}
 			return res.status(500).json({ message: req.t('errors.internalServerError') });
