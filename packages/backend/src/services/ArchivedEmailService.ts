@@ -20,6 +20,7 @@ import { AuditService } from './AuditService';
 import { User } from '@open-archiver/types';
 import { checkDeletionEnabled } from '../helpers/deletionGuard';
 import { EmailVerificationService } from './EmailVerificationService';
+import { RetentionHook } from '../hooks/RetentionHook';
 
 interface DbRecipients {
 	to: { name: string; address: string }[];
@@ -202,9 +203,22 @@ export class ArchivedEmailService {
 	public static async deleteArchivedEmail(
 		emailId: string,
 		actor: User,
-		actorIp: string
+		actorIp: string,
+		options: {
+			systemDelete?: boolean;
+			/**
+			 * Human-readable name of the retention rule that triggered deletion
+			 */
+			governingRule?: string;
+		} = {}
 	): Promise<void> {
-		checkDeletionEnabled();
+		checkDeletionEnabled({ allowSystemDelete: options.systemDelete });
+
+		const canDelete = await RetentionHook.canDelete(emailId);
+		if (!canDelete) {
+			throw new Error('Deletion blocked by retention policy (Legal Hold or similar).');
+		}
+
 		const [email] = await db
 			.select()
 			.from(archivedEmails)
@@ -267,15 +281,22 @@ export class ArchivedEmailService {
 
 		await db.delete(archivedEmails).where(eq(archivedEmails.id, emailId));
 
+		// Build audit details: system-initiated deletions carry retention context
+		// for GoBD compliance; manual deletions record only the reason.
+		const auditDetails: Record<string, unknown> = {
+			reason: options.systemDelete ? 'RetentionExpiration' : 'ManualDeletion',
+		};
+		if (options.systemDelete && options.governingRule) {
+			auditDetails.governingRule = options.governingRule;
+		}
+
 		await this.auditService.createAuditLog({
 			actorIdentifier: actor.id,
 			actionType: 'DELETE',
 			targetType: 'ArchivedEmail',
 			targetId: emailId,
 			actorIp,
-			details: {
-				reason: 'ManualDeletion',
-			},
+			details: auditDetails,
 		});
 	}
 }

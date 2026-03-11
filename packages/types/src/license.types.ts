@@ -27,6 +27,14 @@ export interface LicenseFilePayload {
 export interface LicenseStatusPayload {
 	status: 'VALID' | 'REVOKED';
 	gracePeriodEnds?: string; // ISO 8601, only present if REVOKED
+	/** ISO 8601 UTC timestamp of when this status was last successfully fetched. */
+	lastCheckedAt?: string;
+	/** The current plan seat limit from the license server. */
+	planSeats?: number;
+	/** ISO 8601 UTC timestamp of the license expiration date. */
+	expirationDate?: string;
+	/** Optional message from the license server (e.g. regarding account status). */
+	message?: string;
 }
 
 /**
@@ -40,6 +48,8 @@ export interface ConsolidatedLicenseStatus {
 	// From the cached license-status.json
 	remoteStatus: 'VALID' | 'REVOKED' | 'UNKNOWN';
 	gracePeriodEnds?: string;
+	lastCheckedAt?: string;
+	message?: string;
 	// Calculated values
 	activeSeats: number;
 	isExpired: boolean;
