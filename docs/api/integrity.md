@@ -19,6 +19,7 @@ Returns archived email details. Optionally, it can include a `verification` obje
 ### Verification Fields
 
 - `verification.localIntegrity`: local file-vs-DB check (email + attachments)
+- `verification.localIntegrity.integrityReport`: can include `email`, `attachment`, and `verification_root`
 - `verification.externalProof`: verification of `verificationRootHash` against the audit-proof backend
 - `verification.manifest`: canonical manifest used for root calculation
 - `verification.verificationRootHash`: SHA256 root over the canonical manifest
@@ -35,7 +36,8 @@ Returns archived email details. Optionally, it can include a `verification` obje
 		"isValid": true,
 		"integrityReport": [
 			{ "type": "email", "id": "...", "isValid": true },
-			{ "type": "attachment", "id": "...", "filename": "invoice.pdf", "isValid": true }
+			{ "type": "attachment", "id": "...", "filename": "invoice.pdf", "isValid": true },
+			{ "type": "verification_root", "id": "...", "filename": "Stored verification root hash", "isValid": true }
 		]
 	},
 	"externalProof": {
@@ -46,4 +48,4 @@ Returns archived email details. Optionally, it can include a `verification` obje
 }
 ```
 
-This means “not manipulated” explicitly covers both the email body (`.eml`) and all linked attachments, and can be externally backed by audit-proof verification of the root hash.
+This means “not manipulated” explicitly covers the email body (`.eml`), all linked attachments, and the DB-stored verification root reference itself. The resulting root hash can then be externally backed by audit-proof verification.

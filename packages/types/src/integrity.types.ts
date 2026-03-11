@@ -1,5 +1,5 @@
 export interface IntegrityCheckResult {
-	type: 'email' | 'attachment';
+	type: 'email' | 'attachment' | 'verification_root';
 	id: string;
 	filename?: string;
 	isValid: boolean;

@@ -131,6 +131,27 @@ export class EmailVerificationService {
 
 		const manifest = buildVerificationManifest(hashSha256, attachmentManifestEntries);
 		const verificationRootHash = computeVerificationRootHash(manifest);
+
+		if (email.verificationRootHash) {
+			integrityReport.push(
+				email.verificationRootHash === verificationRootHash
+					? {
+							type: 'verification_root',
+							id: email.id,
+							filename: 'Stored verification root hash',
+							isValid: true,
+						}
+					: {
+							type: 'verification_root',
+							id: email.id,
+							filename: 'Stored verification root hash',
+							isValid: false,
+							reason:
+								'Stored verification root hash does not match the recomputed manifest hash.',
+						}
+			);
+		}
+
 		const localIntegrity: LocalIntegrityResult = {
 			isValid: integrityReport.every((item) => item.isValid),
 			integrityReport,

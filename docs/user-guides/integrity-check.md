@@ -41,6 +41,18 @@ compares those values against the stored references. This is required for tamper
 
 In other words, this is not redundant cryptography; it is the actual integrity proof step.
 
+## Additional database consistency check
+
+If `verificationRootHash` is stored in the database, Open Archiver also compares that stored
+value with the root hash that was freshly recomputed from the current email bytes and
+attachment bytes.
+
+This closes an important integrity gap:
+
+- If files in storage are unchanged but the DB reference hash was modified, verification still fails.
+- If the DB reference hash matches and the external `/verify` check passes, the manifest root is
+  consistent across storage, database, and the audit-proof backend.
+
 ## Practical optimization strategy
 
 To balance performance and auditability, use two modes:
@@ -54,3 +66,18 @@ To balance performance and auditability, use two modes:
     - Checks local hashes + external `/verify` proof.
 
 For revisionssicherheit / non-manipulation claims, only the second mode is sufficient.
+
+## What deletion currently proves
+
+The current audit-proof integration proves save and verify against the external backend. Deletion
+is handled differently at the moment:
+
+- Before an archived email is physically deleted, Open Archiver writes a deletion event to the
+  local audit log.
+- That event includes the archived email's `verificationRootHash`, `storageHashSha256`, and the
+  attachment hashes known at deletion time.
+- The audit log itself is hash-chained, so the delete event becomes locally tamper-evident.
+
+This means deletions are visible to an auditor in the internal audit chain. What is still missing
+for a fully externalized deletion proof is a dedicated immutable tombstone that is anchored to the
+audit-proof backend as well.
