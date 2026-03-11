@@ -77,7 +77,17 @@ inklusive Payload-Form, Hash/Timestamp-Herkunft und den Stellen, an denen Daten 
   - `verificationRootHash = computeVerificationRootHash(manifest)`
   - Somit wird extern immer der aus **aktuellen Storage-Bytes** abgeleitete Root-Hash verifiziert.
 
-### 2.5 Timestamp-Herkunft für `/verify`
+### 2.5 Gespeicherter DB-Root-Hash wird gegen den Rehash geprüft
+- Datei: `packages/backend/src/services/EmailVerificationService.ts`
+- Relevanz:
+  - Wenn `archived_emails.verification_root_hash` gesetzt ist, wird dieser Wert
+    gegen den frisch aus Manifest + Storage-Bytes berechneten `verificationRootHash`
+    verglichen.
+  - Ein Mismatch erzeugt einen lokalen Integrity-Fehler vom Typ `verification_root`.
+  - Damit werden nicht nur manipulierte Dateiinhalte erkannt, sondern auch Änderungen
+    an der in der DB abgelegten Referenz der Beweiskette.
+
+### 2.6 Timestamp-Herkunft für `/verify`
 - Datei: `packages/backend/src/services/EmailVerificationService.ts`
 - Relevanz:
   - Timestamp wird als
@@ -85,7 +95,7 @@ inklusive Payload-Form, Hash/Timestamp-Herkunft und den Stellen, an denen Daten 
     - also Unix-Sekunden aus `archived_emails.archived_at`
     gesendet.
 
-### 2.6 Exakte `/verify` Request-Form
+### 2.7 Exakte `/verify` Request-Form
 - Datei: `packages/backend/src/services/AuditProofService.ts`
 - Relevanz:
   - `verifyEmailHash()` sendet `POST {baseUrl}/verify` mit JSON:
@@ -147,5 +157,21 @@ inklusive Payload-Form, Hash/Timestamp-Herkunft und den Stellen, an denen Daten 
 Für die Beweiskette sind die zentralen Garantien:
 1. Save sendet **nicht** den Rohmail-Hash, sondern den deterministisch abgeleiteten `verificationRootHash` an `/save`.
 2. Verify berechnet den Root-Hash aus **neu gehashten** Storage-Dateien (Mail + Attachments) erneut.
-3. Verify sendet `key + value(rootHash) + timestamp(archivedAt in Unix-Sekunden)` an `/verify`.
-4. Durch deterministisches Sorting im Manifest ist die Root-Hash-Bildung zwischen Save und Verify konsistent.
+3. Verify prüft zusätzlich den in der DB gespeicherten `verification_root_hash` gegen den frisch berechneten Manifest-Hash.
+4. Verify sendet `key + value(rootHash) + timestamp(archivedAt in Unix-Sekunden)` an `/verify`.
+5. Durch deterministisches Sorting im Manifest ist die Root-Hash-Bildung zwischen Save und Verify konsistent.
+
+## 7) Löschungen und Audit-Spur
+
+Die aktuelle Audit-Proof-Integration deckt extern nur `save` und `verify` ab. Für Löschungen gibt es derzeit keinen separaten `/delete`- oder Tombstone-Call an das Audit-Proof-Backend.
+
+Trotzdem werden Löschungen nicht spurlos:
+- Vor der physischen Löschung schreibt Open Archiver einen Audit-Log-Eintrag.
+- Dieser Eintrag enthält belastbare Evidenz zum Objekt:
+  - `messageIdHeader`
+  - `storageHashSha256`
+  - `verificationRootHash`
+  - Attachment-Hashes und Metadaten
+- Die Audit-Logs selbst sind hash-verkettet und lokal auf Integrität prüfbar.
+
+Für eine voll externe, revisionssichere Löschspur fehlt als nächster Ausbauschritt noch ein unveränderlicher Tombstone, der ebenfalls an das Audit-Proof-Backend verankert wird.
