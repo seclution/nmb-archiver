@@ -13,7 +13,7 @@ export default defineConfig({
 		},
 		nav: [
 			{ text: 'Home', link: '/' },
-			{ text: 'Github', link: 'https://github.com/seclution/OpenArchiver' },
+			{ text: 'Github', link: 'https://github.com/seclution/nmb-archiver' },
 			{ text: 'Upstream', link: 'https://github.com/LogicLabs-OU/OpenArchiver' },
 		],
 		sidebar: [

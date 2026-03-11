@@ -441,7 +441,7 @@
 					<a
 						class="text-primary underline underline-offset-2"
 						target="_blank"
-						href="https://github.com/seclution/OpenArchiver/tree/main/docs/user-guides/email-providers"
+						href="https://github.com/seclution/nmb-archiver/tree/main/docs/user-guides/email-providers"
 						>{$t('app.ingestions.docs_here')}</a
 					>.</span
 				>

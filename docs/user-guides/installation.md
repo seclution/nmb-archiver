@@ -13,7 +13,7 @@ This guide will walk you through setting up NMB Archiver using Docker Compose. T
 First, clone the NMB Archiver repository to your machine:
 
 ```bash
-git clone https://github.com/seclution/OpenArchiver.git nmb-archiver
+git clone https://github.com/seclution/nmb-archiver.git nmb-archiver
 cd nmb-archiver
 ```
 

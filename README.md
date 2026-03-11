@@ -65,7 +65,7 @@ Die zugehörige technische Dokumentation liegt in [docs/api/audit-proof-save-ver
 1. Repository klonen:
 
 ```bash
-git clone https://github.com/seclution/OpenArchiver.git nmb-archiver
+git clone https://github.com/seclution/nmb-archiver.git nmb-archiver
 cd nmb-archiver
 ```
 
@@ -97,6 +97,6 @@ docker compose up -d
 Dieser Fork verfolgt bewusst eine enge Anbindung an den öffentlichen Upstream:
 
 - Upstream-Projekt: `https://github.com/LogicLabs-OU/OpenArchiver`
-- Fork-Repository: `https://github.com/seclution/OpenArchiver`
+- Fork-Repository: `https://github.com/seclution/nmb-archiver`
 
 Für Upstream-Syncs ist ein zusätzlicher Git-Remote `upstream` sinnvoll, damit Unterschiede zwischen Originalprojekt und Fork jederzeit sauber nachvollziehbar bleiben.

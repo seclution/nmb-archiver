@@ -4,7 +4,7 @@ This guide provides instructions for upgrading your NMB Archiver instance to the
 
 ## Checking for New Versions
 
-NMB Archiver automatically checks for new versions and will display a notification in the footer of the web interface when an update is available. You can find a list of all releases and their release notes on the [GitHub Releases](https://github.com/seclution/OpenArchiver/releases) page.
+NMB Archiver automatically checks for new versions and will display a notification in the footer of the web interface when an update is available. You can find a list of all releases and their release notes on the [GitHub Releases](https://github.com/seclution/nmb-archiver/releases) page.
 
 ## Upgrading Your Instance
 
