@@ -1,5 +1,3 @@
-ALTER TYPE "public"."audit_log_target_type" ADD VALUE 'RetentionPolicy' BEFORE 'Role';--> statement-breakpoint
-ALTER TYPE "public"."audit_log_target_type" ADD VALUE 'SystemEvent' BEFORE 'SystemSettings';--> statement-breakpoint
 CREATE TABLE "email_legal_holds" (
 	"email_id" uuid NOT NULL,
 	"legal_hold_id" uuid NOT NULL,
@@ -36,41 +34,10 @@ ALTER TABLE "legal_holds" DROP CONSTRAINT "legal_holds_custodian_id_custodians_i
 ALTER TABLE "legal_holds" DROP CONSTRAINT "legal_holds_case_id_ediscovery_cases_id_fk";
 --> statement-breakpoint
 ALTER TABLE "legal_holds" ALTER COLUMN "case_id" DROP NOT NULL;--> statement-breakpoint
-ALTER TABLE "legal_holds" ADD COLUMN "name" varchar(255);--> statement-breakpoint
-UPDATE "legal_holds" AS "lh"
-SET "name" = LEFT(
-	COALESCE(
-		NULLIF(BTRIM("lh"."reason"), ''),
-		(
-			SELECT "ec"."name"
-			FROM "ediscovery_cases" AS "ec"
-			WHERE "ec"."id" = "lh"."case_id"
-		),
-		'Legacy legal hold ' || "lh"."id"::text
-	),
-	255
-)
-WHERE "lh"."name" IS NULL;--> statement-breakpoint
-ALTER TABLE "legal_holds" ALTER COLUMN "name" SET NOT NULL;--> statement-breakpoint
-ALTER TABLE "legal_holds" ADD COLUMN "is_active" boolean;--> statement-breakpoint
-UPDATE "legal_holds"
-SET "is_active" = "removed_at" IS NULL
-WHERE "is_active" IS NULL;--> statement-breakpoint
-ALTER TABLE "legal_holds" ALTER COLUMN "is_active" SET DEFAULT true;--> statement-breakpoint
-ALTER TABLE "legal_holds" ALTER COLUMN "is_active" SET NOT NULL;--> statement-breakpoint
-ALTER TABLE "legal_holds" ADD COLUMN "created_at" timestamp with time zone;--> statement-breakpoint
-UPDATE "legal_holds"
-SET "created_at" = COALESCE("applied_at", now())
-WHERE "created_at" IS NULL;--> statement-breakpoint
-ALTER TABLE "legal_holds" ALTER COLUMN "created_at" SET DEFAULT now();--> statement-breakpoint
-ALTER TABLE "legal_holds" ALTER COLUMN "created_at" SET NOT NULL;--> statement-breakpoint
-ALTER TABLE "legal_holds" ADD COLUMN "updated_at" timestamp with time zone;--> statement-breakpoint
-UPDATE "legal_holds"
-SET "updated_at" = COALESCE("removed_at", "applied_at", now())
-WHERE "updated_at" IS NULL;--> statement-breakpoint
-ALTER TABLE "legal_holds" ALTER COLUMN "updated_at" SET DEFAULT now();--> statement-breakpoint
-ALTER TABLE "legal_holds" ALTER COLUMN "updated_at" SET NOT NULL;--> statement-breakpoint
-ALTER TABLE "retention_policies" ADD COLUMN "ingestion_scope" jsonb DEFAULT 'null'::jsonb;--> statement-breakpoint
+ALTER TABLE "legal_holds" ADD COLUMN "name" varchar(255) NOT NULL;--> statement-breakpoint
+ALTER TABLE "legal_holds" ADD COLUMN "is_active" boolean DEFAULT true NOT NULL;--> statement-breakpoint
+ALTER TABLE "legal_holds" ADD COLUMN "created_at" timestamp with time zone DEFAULT now() NOT NULL;--> statement-breakpoint
+ALTER TABLE "legal_holds" ADD COLUMN "updated_at" timestamp with time zone DEFAULT now() NOT NULL;--> statement-breakpoint
 ALTER TABLE "email_legal_holds" ADD CONSTRAINT "email_legal_holds_email_id_archived_emails_id_fk" FOREIGN KEY ("email_id") REFERENCES "public"."archived_emails"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "email_legal_holds" ADD CONSTRAINT "email_legal_holds_legal_hold_id_legal_holds_id_fk" FOREIGN KEY ("legal_hold_id") REFERENCES "public"."legal_holds"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "email_retention_labels" ADD CONSTRAINT "email_retention_labels_email_id_archived_emails_id_fk" FOREIGN KEY ("email_id") REFERENCES "public"."archived_emails"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint

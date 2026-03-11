@@ -1,5 +1,5 @@
 {
-  "id": "8c127556-33a6-4a27-a1b4-9cb668726efc",
+  "id": "d713dd13-babf-4b31-9c4c-76a3a5fd731a",
   "prevId": "2747b009-4502-4e19-a725-1c5e9807c52b",
   "version": "7",
   "dialect": "postgresql",
@@ -124,12 +124,6 @@
         "tags": {
           "name": "tags",
           "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "verification_root_hash": {
-          "name": "verification_root_hash",
-          "type": "text",
           "primaryKey": false,
           "notNull": false
         }
@@ -467,6 +461,152 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.email_legal_holds": {
+      "name": "email_legal_holds",
+      "schema": "",
+      "columns": {
+        "email_id": {
+          "name": "email_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "legal_hold_id": {
+          "name": "legal_hold_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "email_legal_holds_email_id_archived_emails_id_fk": {
+          "name": "email_legal_holds_email_id_archived_emails_id_fk",
+          "tableFrom": "email_legal_holds",
+          "tableTo": "archived_emails",
+          "columnsFrom": [
+            "email_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "email_legal_holds_legal_hold_id_legal_holds_id_fk": {
+          "name": "email_legal_holds_legal_hold_id_legal_holds_id_fk",
+          "tableFrom": "email_legal_holds",
+          "tableTo": "legal_holds",
+          "columnsFrom": [
+            "legal_hold_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "email_legal_holds_email_id_legal_hold_id_pk": {
+          "name": "email_legal_holds_email_id_legal_hold_id_pk",
+          "columns": [
+            "email_id",
+            "legal_hold_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.email_retention_labels": {
+      "name": "email_retention_labels",
+      "schema": "",
+      "columns": {
+        "email_id": {
+          "name": "email_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "label_id": {
+          "name": "label_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "applied_at": {
+          "name": "applied_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "applied_by_user_id": {
+          "name": "applied_by_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "email_retention_labels_email_id_archived_emails_id_fk": {
+          "name": "email_retention_labels_email_id_archived_emails_id_fk",
+          "tableFrom": "email_retention_labels",
+          "tableTo": "archived_emails",
+          "columnsFrom": [
+            "email_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "email_retention_labels_label_id_retention_labels_id_fk": {
+          "name": "email_retention_labels_label_id_retention_labels_id_fk",
+          "tableFrom": "email_retention_labels",
+          "tableTo": "retention_labels",
+          "columnsFrom": [
+            "label_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "email_retention_labels_applied_by_user_id_users_id_fk": {
+          "name": "email_retention_labels_applied_by_user_id_users_id_fk",
+          "tableFrom": "email_retention_labels",
+          "tableTo": "users",
+          "columnsFrom": [
+            "applied_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "email_retention_labels_email_id_label_id_pk": {
+          "name": "email_retention_labels_email_id_label_id_pk",
+          "columns": [
+            "email_id",
+            "label_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.export_jobs": {
       "name": "export_jobs",
       "schema": "",
@@ -562,23 +702,11 @@
           "notNull": true,
           "default": "gen_random_uuid()"
         },
-        "case_id": {
-          "name": "case_id",
-          "type": "uuid",
+        "name": {
+          "name": "name",
+          "type": "varchar(255)",
           "primaryKey": false,
           "notNull": true
-        },
-        "custodian_id": {
-          "name": "custodian_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "hold_criteria": {
-          "name": "hold_criteria",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
         },
         "reason": {
           "name": "reason",
@@ -586,24 +714,32 @@
           "primaryKey": false,
           "notNull": false
         },
-        "applied_by_identifier": {
-          "name": "applied_by_identifier",
-          "type": "text",
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "default": true
         },
-        "applied_at": {
-          "name": "applied_at",
+        "case_id": {
+          "name": "case_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
         },
-        "removed_at": {
-          "name": "removed_at",
+        "updated_at": {
+          "name": "updated_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true,
+          "default": "now()"
         }
       },
       "indexes": {},
@@ -618,23 +754,106 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "legal_holds_custodian_id_custodians_id_fk": {
-          "name": "legal_holds_custodian_id_custodians_id_fk",
-          "tableFrom": "legal_holds",
-          "tableTo": "custodians",
-          "columnsFrom": [
-            "custodian_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.retention_events": {
+      "name": "retention_events",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "event_name": {
+          "name": "event_name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "event_type": {
+          "name": "event_type",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "event_timestamp": {
+          "name": "event_timestamp",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "target_criteria": {
+          "name": "target_criteria",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.retention_labels": {
+      "name": "retention_labels",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "retention_period_days": {
+          "name": "retention_period_days",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},

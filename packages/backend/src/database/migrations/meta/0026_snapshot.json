@@ -1,6 +1,6 @@
 {
-  "id": "fe6390c6-4fcf-4182-a7fb-fe929003aec0",
-  "prevId": "d713dd13-babf-4b31-9c4c-76a3a5fd731a",
+  "id": "c4815b14-e981-40e9-aca3-e5602705f4eb",
+  "prevId": "fe6390c6-4fcf-4182-a7fb-fe929003aec0",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -80,6 +80,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "verification_root_hash": {
+          "name": "verification_root_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "size_bytes": {
           "name": "size_bytes",
