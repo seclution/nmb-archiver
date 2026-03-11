@@ -173,8 +173,15 @@
 		{
 			"idx": 24,
 			"version": "7",
+			"when": 1773168867450,
+			"tag": "0024_canonical_verification_root_hash",
+			"breakpoints": true
+		},
+		{
+			"idx": 25,
+			"version": "7",
 			"when": 1773244391876,
-			"tag": "0024_retention_and_verification_baseline",
+			"tag": "0025_retention_and_verification_baseline",
 			"breakpoints": true
 		}
   ]
