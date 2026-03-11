@@ -1,6 +1,6 @@
 # Installation Guide
 
-This guide will walk you through setting up Open Archiver using Docker Compose. This is the recommended method for deploying the application.
+This guide will walk you through setting up NMB Archiver using Docker Compose. This is the recommended method for deploying the application.
 
 ## Prerequisites
 
@@ -10,16 +10,16 @@ This guide will walk you through setting up Open Archiver using Docker Compose. 
 
 ## 1. Clone the Repository
 
-First, clone the Open Archiver repository to your machine:
+First, clone the NMB Archiver repository to your machine:
 
 ```bash
-git clone https://github.com/LogicLabs-OU/OpenArchiver.git
-cd OpenArchiver
+git clone https://github.com/seclution/OpenArchiver.git nmb-archiver
+cd nmb-archiver
 ```
 
 ## 2. Create a Directory for Local Storage (Important)
 
-Before configuring the application, you **must** create a directory on your host machine where Open Archiver will store its data (such as emails and attachments). Manually creating this directory helps prevent potential permission issues.
+Before configuring the application, you **must** create a directory on your host machine where NMB Archiver will store its data (such as emails and attachments). Manually creating this directory helps prevent potential permission issues.
 
 Foe examples, you can use this path `/var/data/open-archiver`.
 
@@ -82,7 +82,7 @@ To do so:
 1.  **Update your `.env` file**: Change the host, port, and credential variables to point to your external service instances. For example, you would update `DATABASE_URL`, `REDIS_HOST`, and `MEILI_HOST`.
 2.  **Modify `docker-compose.yml`**: Remove or comment out the service definitions for `postgres`, `valkey`, and `meilisearch` from your `docker-compose.yml` file.
 
-This will configure the Open Archiver application to connect to your services instead of starting the default ones.
+This will configure the NMB Archiver application to connect to your services instead of starting the default ones.
 
 ### Environment Variable Reference
 
@@ -126,7 +126,7 @@ These variables are used by `docker-compose.yml` to configure the services.
 | ------------------------------ | ----------------------------------------------------------------------------------------------------------- | ------------------------- |
 | `STORAGE_TYPE`                 | The storage backend to use (`local` or `s3`).                                                               | `local`                   |
 | `BODY_SIZE_LIMIT`              | The maximum request body size for uploads. Can be a number in bytes or a string with a unit (e.g., `100M`). | `100M`                    |
-| `STORAGE_LOCAL_ROOT_PATH`      | The root path for Open Archiver app data.                                                                   | `/var/data/open-archiver` |
+| `STORAGE_LOCAL_ROOT_PATH`      | The root path for NMB Archiver app data.                                                                   | `/var/data/open-archiver` |
 | `STORAGE_S3_ENDPOINT`          | The endpoint for S3-compatible storage (required if `STORAGE_TYPE` is `s3`).                                |                           |
 | `STORAGE_S3_BUCKET`            | The bucket name for S3-compatible storage (required if `STORAGE_TYPE` is `s3`).                             |                           |
 | `STORAGE_S3_ACCESS_KEY_ID`     | The access key ID for S3-compatible storage (required if `STORAGE_TYPE` is `s3`).                           |                           |
@@ -175,7 +175,7 @@ docker compose ps
 
 ## 5. Access the Application
 
-Once the services are running, you can access the Open Archiver web interface by navigating to `http://localhost:3000` in your web browser.
+Once the services are running, you can access the NMB Archiver web interface by navigating to `http://localhost:3000` in your web browser.
 
 Upon first visit, you will be redirected to the `/setup` page where you can set up your admin account. Make sure you are the first person who accesses the instance.
 
@@ -183,7 +183,7 @@ If you are not redirected to the `/setup` page but instead see the login page, t
 
 ## 6. Next Steps
 
-After successfully deploying and logging into Open Archiver, the next step is to configure your ingestion sources to start archiving emails.
+After successfully deploying and logging into NMB Archiver, the next step is to configure your ingestion sources to start archiving emails.
 
 - [Connecting to Google Workspace](./email-providers/google-workspace.md)
 - [Connecting to Microsoft 365](./email-providers/microsoft-365.md)
@@ -191,7 +191,7 @@ After successfully deploying and logging into Open Archiver, the next step is to
 
 ## Updating Your Installation
 
-To update your Open Archiver instance to the latest version, run the following commands:
+To update your NMB Archiver instance to the latest version, run the following commands:
 
 ```bash
 # Pull the latest changes from the repository
@@ -206,7 +206,7 @@ docker compose up -d
 
 ## Deploying on Coolify
 
-If you are deploying Open Archiver on [Coolify](https://coolify.io/), it is recommended to let Coolify manage the Docker networks for you. This can help avoid potential routing conflicts and simplify your setup.
+If you are deploying NMB Archiver on [Coolify](https://coolify.io/), it is recommended to let Coolify manage the Docker networks for you. This can help avoid potential routing conflicts and simplify your setup.
 
 To do this, you will need to make a small modification to your `docker-compose.yml` file.
 
@@ -259,7 +259,7 @@ docker volume ls
 
 2.  **Identify the correct volume**:
 
-Look through the list for a volume name that ends with `_archiver-data`. The part before that will be your project's directory name. For example, if your project is in a folder named `OpenArchiver`, the volume will be `openarchiver_archiver-data` But it can be a randomly generated hash.
+Look through the list for a volume name that ends with `_archiver-data`. The part before that will be your project's directory name. For example, if your project is in a folder named `NMB Archiver`, the volume will be `openarchiver_archiver-data` But it can be a randomly generated hash.
 
 3.  **Inspect the correct volume**:
 

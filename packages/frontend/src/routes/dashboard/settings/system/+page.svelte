@@ -56,7 +56,7 @@
 </script>
 
 <svelte:head>
-	<title>{$t('app.system_settings.title')} - OpenArchiver</title>
+	<title>{$t('app.system_settings.title')} - NMB Archiver</title>
 </svelte:head>
 
 <div class="space-y-6">

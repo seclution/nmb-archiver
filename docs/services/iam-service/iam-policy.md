@@ -1,6 +1,6 @@
 # IAM Policy
 
-This document provides a guide to creating and managing IAM policies in Open Archiver. It is intended for developers and administrators who need to configure granular access control for users and roles.
+This document provides a guide to creating and managing IAM policies in NMB Archiver. It is intended for developers and administrators who need to configure granular access control for users and roles.
 
 ## Policy Structure
 

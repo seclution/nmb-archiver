@@ -148,7 +148,7 @@
 		},
 		"setup": {
 			"title": "セットアップ",
-			"description": "Open Archiverの初期管理者アカウントをセットアップします。",
+			"description": "NMB Archiverの初期管理者アカウントをセットアップします。",
 			"welcome": "ようこそ",
 			"create_admin_account": "開始するには、最初の管理者アカウントを作成してください。",
 			"first_name": "名",

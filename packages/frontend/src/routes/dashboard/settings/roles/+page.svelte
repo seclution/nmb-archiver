@@ -109,7 +109,7 @@
 </script>
 
 <svelte:head>
-	<title>{$t('app.roles.title')} - OpenArchiver</title>
+	<title>{$t('app.roles.title')} - NMB Archiver</title>
 </svelte:head>
 
 <div class="">

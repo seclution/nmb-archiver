@@ -235,7 +235,7 @@
 		},
 		"setup": {
 			"title": "Setup",
-			"description": "Set up the initial administrator account for Open Archiver.",
+			"description": "Set up the initial administrator account for NMB Archiver.",
 			"welcome": "Welcome",
 			"create_admin_account": "Create the first administrator account to get started.",
 			"first_name": "First name",
@@ -374,11 +374,12 @@
 		},
 		"license_page": {
 			"title": "Enterprise License Status",
-			"meta_description": "View the current status of your Open Archiver Enterprise license.",
+			"meta_description": "View the current status of your NMB Archiver Enterprise license.",
 			"revoked_title": "License Revoked",
 			"revoked_message": "Your license has been revoked by the license administrator. Enterprise features will be disabled {{grace_period}}. Please contact your account manager for assistance.",
 			"revoked_grace_period": "on {{date}}",
 			"revoked_immediately": "immediately",
+			"notice_title": "Notice",
 			"seat_limit_exceeded_title": "Seat Limit Exceeded",
 			"seat_limit_exceeded_message": "Your license is for {{planSeats}} users, but you are currently using {{activeSeats}}. Please contact sales to adjust your subscription.",
 			"customer": "Customer",

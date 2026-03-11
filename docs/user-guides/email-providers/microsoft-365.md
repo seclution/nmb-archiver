@@ -10,12 +10,12 @@ The connection uses the **Microsoft Graph API** and an **App Registration** in M
 
 ## Setup Overview
 
-The setup process involves four main parts, all performed within the Microsoft Entra admin center and the OpenArchiver application:
+The setup process involves four main parts, all performed within the Microsoft Entra admin center and the NMB Archiver application:
 
 1.  Registering a new application identity for the archiver in Entra ID.
 2.  Granting the application the specific permissions it needs to read mail.
 3.  Creating a secure password (a client secret) for the application.
-4.  Entering the generated credentials into the OpenArchiver application.
+4.  Entering the generated credentials into the NMB Archiver application.
 
 ---
 
@@ -27,7 +27,7 @@ First, you will create an "App registration," which acts as an identity for the 
 2.  In the left-hand navigation pane, go to **Identity > Applications > App registrations**.
 3.  Click the **+ New registration** button at the top of the page.
 4.  On the "Register an application" screen:
-    - **Name:** Give the application a descriptive name you will recognize, such as `OpenArchiver Service`.
+    - **Name:** Give the application a descriptive name you will recognize, such as `NMB Archiver Service`.
     - **Supported account types:** Select **"Accounts in this organizational directory only (Default Directory only - Single tenant)"**. This is the most secure option.
     - **Redirect URI (optional):** You can leave this blank.
 5.  Click the **Register** button. You will be taken to the application's main "Overview" page.
@@ -57,19 +57,19 @@ The client secret is a password that the archiving service will use to authentic
 1.  In your application's menu, navigate to **Certificates & secrets**.
 2.  Select the **Client secrets** tab and click **+ New client secret**.
 3.  In the pane that appears:
-    - **Description:** Enter a clear description, such as `OpenArchiver Key`.
+    - **Description:** Enter a clear description, such as `NMB Archiver Key`.
     - **Expires:** Select an expiry duration. We recommend **12 or 24 months**. Set a calendar reminder to renew it before it expires to prevent service interruption.
 4.  Click **Add**.
 5.  **IMMEDIATELY COPY THE SECRET:** The secret is now visible in the **"Value"** column. This is the only time it will be fully displayed. Copy this value now and store it in a secure password manager before navigating away. If you lose it, you must create a new one.
 
 ---
 
-### Part 4: Connecting in OpenArchiver
+### Part 4: Connecting in NMB Archiver
 
 You now have the three pieces of information required to configure the connection.
 
 1.  **Navigate to Ingestion Sources:**
-    In the OpenArchiver application, go to the **Ingestion Sources** page.
+    In the NMB Archiver application, go to the **Ingestion Sources** page.
 
 2.  **Create a New Source:**
     Click the **"Create New"** button.

@@ -1,10 +1,10 @@
 # Integrity Check
 
-Open Archiver verifies archived email integrity using a canonical manifest and a root hash.
+NMB Archiver verifies archived email integrity using a canonical manifest and a root hash.
 
 ## What is verified
 
-For each archived email, Open Archiver builds a canonical manifest with:
+For each archived email, NMB Archiver builds a canonical manifest with:
 
 - SHA256 of the `.eml` file
 - sorted attachment entries with stable fields:
@@ -12,11 +12,11 @@ For each archived email, Open Archiver builds a canonical manifest with:
     - `sizeBytes`
     - `contentHashSha256`
 
-From that manifest, Open Archiver computes `verificationRootHash` (SHA256).
+From that manifest, NMB Archiver computes `verificationRootHash` (SHA256).
 
 ## Local + external verification
 
-When you run verification, Open Archiver:
+When you run verification, NMB Archiver:
 
 1. re-hashes `.eml` and attachments,
 2. rebuilds the same canonical manifest,
@@ -32,7 +32,7 @@ So “not manipulated” explicitly means both email and attachments are unchang
 The SHA256 values stored in the database (`storageHashSha256` for `.eml` and
 `contentHashSha256` for attachments) are the reference values created during ingestion.
 
-During verification, Open Archiver deliberately re-hashes the currently stored files and
+During verification, NMB Archiver deliberately re-hashes the currently stored files and
 compares those values against the stored references. This is required for tamper detection:
 
 - If only stored hashes were reused, manipulation of files in storage would not be detected.
@@ -43,7 +43,7 @@ In other words, this is not redundant cryptography; it is the actual integrity p
 
 ## Additional database consistency check
 
-If `verificationRootHash` is stored in the database, Open Archiver also compares that stored
+If `verificationRootHash` is stored in the database, NMB Archiver also compares that stored
 value with the root hash that was freshly recomputed from the current email bytes and
 attachment bytes.
 
@@ -72,7 +72,7 @@ For revisionssicherheit / non-manipulation claims, only the second mode is suffi
 The current audit-proof integration proves save and verify against the external backend. Deletion
 is handled differently at the moment:
 
-- Before an archived email is physically deleted, Open Archiver writes a deletion event to the
+- Before an archived email is physically deleted, NMB Archiver writes a deletion event to the
   local audit log.
 - That event includes the archived email's `verificationRootHash`, `storageHashSha256`, and the
   attachment hashes known at deletion time.

@@ -41,9 +41,9 @@ Please consult your email provider's documentation to see if they support app pa
 2.  **Go to App Passwords:** Visit [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords). You may be asked to sign in again.
 3.  **Create the Password:**
     - At the bottom, click **"Select app"** and choose **"Other (Custom name)"**.
-    - Give it a name you'll recognize, like "OpenArchiver".
+    - Give it a name you'll recognize, like "NMB Archiver".
     - Click **"Generate"**.
-4.  **Use the Password:** A 16-digit password will be displayed. Copy this password and paste it into the **Password** field in the OpenArchiver ingestion source form.
+4.  **Use the Password:** A 16-digit password will be displayed. Copy this password and paste it into the **Password** field in the NMB Archiver ingestion source form.
 
 ### How to Obtain an App Password for Outlook/Microsoft Accounts
 
@@ -52,7 +52,7 @@ Please consult your email provider's documentation to see if they support app pa
 3.  **Create a New App Password:**
     - Scroll down to the **"App passwords"** section.
     - Click **"Create a new app password"**.
-4.  **Use the Password:** A new password will be generated. Use this password in the **Password** field in the OpenArchiver ingestion source form.
+4.  **Use the Password:** A new password will be generated. Use this password in the **Password** field in the NMB Archiver ingestion source form.
 
 ## What Happens Next?
 

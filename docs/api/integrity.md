@@ -5,7 +5,7 @@ The Integrity Check API verifies a canonical verification manifest per archived 
 - `emailHashSha256` for the `.eml` file
 - a stable, sorted attachment list with `filename`, `sizeBytes`, `contentHashSha256`
 
-Open Archiver then computes `verificationRootHash = SHA256(canonicalManifestJson)` and uses this root hash for external audit-proof storage and verification.
+NMB Archiver then computes `verificationRootHash = SHA256(canonicalManifestJson)` and uses this root hash for external audit-proof storage and verification.
 
 ## Get Archived Email (with Optional Verification)
 

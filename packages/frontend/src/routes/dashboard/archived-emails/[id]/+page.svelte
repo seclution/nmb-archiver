@@ -220,7 +220,7 @@
 								<span class="mt-1">
 									{$t('app.archive.integrity_report_description')}
 									<a
-										href="https://docs.openarchiver.com/user-guides/integrity-check.html"
+										href="https://github.com/seclution/OpenArchiver/blob/main/docs/user-guides/integrity-check.md"
 										target="_blank"
 										class="text-primary underline underline-offset-2"
 										>{$t('app.common.read_docs')}</a

@@ -148,7 +148,7 @@
 		},
 		"setup": {
 			"title": "Seadistamine",
-			"description": "Seadistage Open Archiveri esialgne administraatorikonto.",
+			"description": "Seadistage NMB Archiveri esialgne administraatorikonto.",
 			"welcome": "Tere tulemast",
 			"create_admin_account": "Alustamiseks looge esimene administraatorikonto.",
 			"first_name": "Eesnimi",

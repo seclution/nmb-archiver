@@ -1,8 +1,8 @@
 # Upgrading Meilisearch
 
-Meilisearch, the search engine used by Open Archiver, requires a manual data migration process when upgrading to a new version. This is because Meilisearch databases are only compatible with the specific version that created them.
+Meilisearch, the search engine used by NMB Archiver, requires a manual data migration process when upgrading to a new version. This is because Meilisearch databases are only compatible with the specific version that created them.
 
-If an Open Archiver upgrade includes a major Meilisearch version change, you will need to migrate your search index by following the process below.
+If an NMB Archiver upgrade includes a major Meilisearch version change, you will need to migrate your search index by following the process below.
 
 ## Experimental: Dumpless Upgrade
 
@@ -83,9 +83,9 @@ Before upgrading, you must create a dump of your existing Meilisearch data. You 
 
     For more details on dump and import, see the [official Meilisearch documentation](https://www.meilisearch.com/docs/learn/update_and_migration/updating).
 
-### Step 2: Upgrade Your Open Archiver Instance
+### Step 2: Upgrade Your NMB Archiver Instance
 
-Once the dump is successfully created, you can proceed with the standard Open Archiver upgrade process.
+Once the dump is successfully created, you can proceed with the standard NMB Archiver upgrade process.
 
 1.  **Pull the latest changes and Docker images**:
 

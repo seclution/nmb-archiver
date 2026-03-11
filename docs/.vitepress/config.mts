@@ -1,19 +1,9 @@
 import { defineConfig } from 'vitepress';
 
 export default defineConfig({
-	head: [
-		[
-			'script',
-			{
-				defer: '',
-				src: 'https://analytics.zenceipt.com/script.js',
-				'data-website-id': '2c8b452e-eab5-4f82-8ead-902d8f8b976f',
-			},
-		],
-		['link', { rel: 'icon', href: '/logo-sq.svg' }],
-	],
-	title: 'Open Archiver Docs',
-	description: 'Official documentation for the Open Archiver project.',
+	head: [['link', { rel: 'icon', href: '/logo-sq.svg' }]],
+	title: 'NMB Archiver Docs',
+	description: 'Dokumentation fuer den NMB Archiver Fork mit Audit-Proof-Integration.',
 	themeConfig: {
 		search: {
 			provider: 'local',
@@ -23,9 +13,8 @@ export default defineConfig({
 		},
 		nav: [
 			{ text: 'Home', link: '/' },
-			{ text: 'Github', link: 'https://github.com/LogicLabs-OU/OpenArchiver' },
-			{ text: 'Website', link: 'https://openarchiver.com/' },
-			{ text: 'Discord', link: 'https://discord.gg/MTtD7BhuTQ' },
+			{ text: 'Github', link: 'https://github.com/seclution/nmb-archiver' },
+			{ text: 'Upstream', link: 'https://github.com/LogicLabs-OU/OpenArchiver' },
 		],
 		sidebar: [
 			{

@@ -104,7 +104,7 @@
 </script>
 
 <svelte:head>
-	<title>{$t('app.users.title')} - OpenArchiver</title>
+	<title>{$t('app.users.title')} - NMB Archiver</title>
 </svelte:head>
 
 <div class="">

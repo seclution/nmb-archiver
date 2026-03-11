@@ -231,7 +231,7 @@
 		},  
 		"setup": {  
 			"title": "Configurazione",  
-			"description": "Configura l'account amministratore iniziale per Open Archiver.",  
+			"description": "Configura l'account amministratore iniziale per NMB Archiver.",  
 			"welcome": "Benvenuto",  
 			"create_admin_account": "Crea il primo account amministratore per iniziare.",  
 			"first_name": "Nome",  
@@ -370,7 +370,7 @@
 		},  
 		"license_page": {  
 			"title": "Stato della licenza Enterprise",  
-			"meta_description": "Visualizza lo stato attuale della tua licenza Open Archiver Enterprise.",  
+			"meta_description": "Visualizza lo stato attuale della tua licenza NMB Archiver Enterprise.",  
 			"revoked_title": "Licenza revocata",  
 			"revoked_message": "La tua licenza è stata revocata dall'amministratore della licenza. Le funzionalità Enterprise verranno disabilitate {{grace_period}}. Contatta il tuo account manager per assistenza.",  
 			"revoked_grace_period": "il {{date}}",  

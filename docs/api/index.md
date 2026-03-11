@@ -1,6 +1,6 @@
 # API Overview
 
-Welcome to the Open Archiver API documentation. This section provides detailed information about the available API endpoints.
+Welcome to the NMB Archiver API documentation. This section provides detailed information about the available API endpoints.
 
 All API endpoints are prefixed with `/api/v1`.
 

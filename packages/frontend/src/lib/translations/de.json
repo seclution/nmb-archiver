@@ -156,7 +156,7 @@
 		},
 		"setup": {
 			"title": "Einrichtung",
-			"description": "Richten Sie das anfängliche Administratorkonto für Open Archiver ein.",
+			"description": "Richten Sie das anfängliche Administratorkonto für NMB Archiver ein.",
 			"welcome": "Willkommen",
 			"create_admin_account": "Erstellen Sie das erste Administratorkonto, um loszulegen.",
 			"first_name": "Vorname",
@@ -312,7 +312,7 @@
 		},
 		"license_page": {
 			"title": "Enterprise-Lizenzstatus",
-			"meta_description": "Zeigen Sie den aktuellen Status Ihrer Open Archiver Enterprise-Lizenz an.",
+			"meta_description": "Zeigen Sie den aktuellen Status Ihrer NMB Archiver Enterprise-Lizenz an.",
 			"revoked_title": "Lizenz widerrufen",
 			"revoked_message": "Ihre Lizenz wurde vom Lizenzadministrator widerrufen. Enterprise-Funktionen werden deaktiviert {{grace_period}}. Bitte kontaktieren Sie Ihren Account Manager für Unterstützung.",
 			"revoked_grace_period": "am {{date}}",

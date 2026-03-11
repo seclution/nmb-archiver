@@ -255,7 +255,7 @@
 </script>
 
 <svelte:head>
-	<title>{$t('app.ingestions.title')} - OpenArchiver</title>
+	<title>{$t('app.ingestions.title')} - NMB Archiver</title>
 </svelte:head>
 
 <div class="">
@@ -441,7 +441,7 @@
 					<a
 						class="text-primary underline underline-offset-2"
 						target="_blank"
-						href="https://docs.openarchiver.com/user-guides/email-providers/"
+						href="https://github.com/seclution/OpenArchiver/tree/main/docs/user-guides/email-providers"
 						>{$t('app.ingestions.docs_here')}</a
 					>.</span
 				>

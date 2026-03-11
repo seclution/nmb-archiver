@@ -1,5 +1,5 @@
 /**
- * Features of Open Archiver Enterprise
+ * Features of NMB Archiver Enterprise
  */
 export enum OpenArchiverFeature {
 	AUDIT_LOG = 'audit-log',
