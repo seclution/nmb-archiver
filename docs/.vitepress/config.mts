@@ -24,6 +24,10 @@ export default defineConfig({
 					{ text: 'Installation', link: '/user-guides/installation' },
 					{ text: 'Email Integrity Check', link: '/user-guides/integrity-check' },
 					{
+						text: 'Audit-Proof Monitoring',
+						link: '/user-guides/audit-proof-monitoring',
+					},
+					{
 						text: 'Email Providers',
 						link: '/user-guides/email-providers/',
 						collapsed: true,

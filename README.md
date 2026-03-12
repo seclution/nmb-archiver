@@ -88,6 +88,7 @@ docker compose up -d
 - Installation: [docs/user-guides/installation.md](docs/user-guides/installation.md)
 - Integritätsprüfung: [docs/user-guides/integrity-check.md](docs/user-guides/integrity-check.md)
 - Audit-Proof-Validierung: [docs/api/audit-proof-save-verify-validation.md](docs/api/audit-proof-save-verify-validation.md)
+- Monitoring-Vorschlag für Audit-Proof-Backlog: [docs/user-guides/audit-proof-monitoring.md](docs/user-guides/audit-proof-monitoring.md)
 
 ## Upstream
 

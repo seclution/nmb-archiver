@@ -206,3 +206,18 @@ Trotzdem werden Löschungen nicht spurlos:
 - Die Audit-Logs selbst sind hash-verkettet und lokal auf Integrität prüfbar.
 
 Für eine voll externe, revisionssichere Löschspur fehlt als nächster Ausbauschritt noch ein unveränderlicher Tombstone, der ebenfalls an das Audit-Proof-Backend verankert wird.
+
+## 8) Monitoring des Submission-Backlogs
+
+Für den produktiven Betrieb sollte die Audit-Proof-Queue nicht nur über Worker-Logs beobachtet werden. Die belastbare Monitoring-Sicht ist der in der Datenbank persistierte Submission-Status pro E-Mail.
+
+Der dokumentierte Vorschlag dafür liegt hier:
+
+- [Audit-Proof Monitoring Proposal](../user-guides/audit-proof-monitoring.md)
+
+Wichtiger Grundsatz:
+
+- Primärsignal: DB-Backlog (`pending`, `failed`, `skipped_not_configured`)
+- Sekundärsignal: Queue-Liveness und Worker-Prozess
+
+Das ist besonders wichtig, wenn mehrere kundengetrennte NMB-Archiver-Instanzen auf einer VM parallel betrieben werden.
