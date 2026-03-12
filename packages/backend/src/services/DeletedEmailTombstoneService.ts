@@ -6,7 +6,7 @@ import { AuditProofService } from './AuditProofService';
 import { SettingsService } from './SettingsService';
 
 type DeletionMode = 'manual' | 'retention';
-type ExternalAnchorStatus = 'pending' | 'anchored' | 'failed' | 'skipped_not_configured';
+type ExternalSubmissionStatus = 'pending' | 'submitted' | 'failed' | 'skipped_not_configured';
 type PhysicalDeletionStatus = 'pending' | 'completed' | 'failed';
 
 interface TombstoneAttachmentEvidence {
@@ -52,7 +52,7 @@ export interface DeletedEmailTombstoneRecord {
 	tombstoneKey: string;
 	tombstoneRootHash: string;
 	deletedAt: Date;
-	externalAnchorStatus: ExternalAnchorStatus;
+	externalSubmissionStatus: ExternalSubmissionStatus;
 	physicalDeletionStatus: PhysicalDeletionStatus;
 }
 
@@ -141,7 +141,7 @@ export class DeletedEmailTombstoneService {
 		return createHash('sha256').update(this.canonicalStringify(manifest)).digest('hex');
 	}
 
-	private isStoreSuccess(
+	private isSubmissionAccepted(
 		result: Awaited<ReturnType<AuditProofService['saveHashForKey']>>
 	): boolean {
 		if (!result) {
@@ -151,7 +151,7 @@ export class DeletedEmailTombstoneService {
 		return result.httpStatus >= 200 && result.httpStatus < 300 && result.res !== 'ERROR';
 	}
 
-	public async createAndAnchorTombstone(
+	public async createAndSubmitTombstone(
 		input: CreateDeletedEmailTombstoneInput
 	): Promise<DeletedEmailTombstoneRecord> {
 		const deletedAt = input.deletedAt ?? new Date();
@@ -190,7 +190,7 @@ export class DeletedEmailTombstoneService {
 				attachmentManifest,
 				tombstoneManifest: manifest,
 				tombstoneRootHash,
-				externalAnchorStatus: 'pending',
+				externalSubmissionStatus: 'pending',
 				physicalDeletionStatus: 'pending',
 			})
 			.returning({
@@ -198,7 +198,7 @@ export class DeletedEmailTombstoneService {
 				tombstoneKey: deletedEmailTombstones.tombstoneKey,
 				tombstoneRootHash: deletedEmailTombstones.tombstoneRootHash,
 				deletedAt: deletedEmailTombstones.deletedAt,
-				externalAnchorStatus: deletedEmailTombstones.externalAnchorStatus,
+				externalSubmissionStatus: deletedEmailTombstones.externalSubmissionStatus,
 				physicalDeletionStatus: deletedEmailTombstones.physicalDeletionStatus,
 			});
 
@@ -206,7 +206,7 @@ export class DeletedEmailTombstoneService {
 			const [updated] = await db
 				.update(deletedEmailTombstones)
 				.set({
-					externalAnchorStatus: 'skipped_not_configured',
+					externalSubmissionStatus: 'skipped_not_configured',
 					updatedAt: new Date(),
 				})
 				.where(eq(deletedEmailTombstones.id, tombstoneId))
@@ -215,7 +215,7 @@ export class DeletedEmailTombstoneService {
 					tombstoneKey: deletedEmailTombstones.tombstoneKey,
 					tombstoneRootHash: deletedEmailTombstones.tombstoneRootHash,
 					deletedAt: deletedEmailTombstones.deletedAt,
-					externalAnchorStatus: deletedEmailTombstones.externalAnchorStatus,
+					externalSubmissionStatus: deletedEmailTombstones.externalSubmissionStatus,
 					physicalDeletionStatus: deletedEmailTombstones.physicalDeletionStatus,
 				});
 
@@ -228,20 +228,23 @@ export class DeletedEmailTombstoneService {
 				tombstoneKey,
 				tombstoneRootHash
 			);
-			const externalAnchorStatus: ExternalAnchorStatus = this.isStoreSuccess(externalResponse)
-				? 'anchored'
+			const externalSubmissionStatus: ExternalSubmissionStatus = this.isSubmissionAccepted(
+				externalResponse
+			)
+				? 'submitted'
 				: 'failed';
 
 			const [updated] = await db
 				.update(deletedEmailTombstones)
 				.set({
-					externalAnchorStatus,
-					externalAnchorResponse: externalResponse,
-					externalAnchoredAt: externalAnchorStatus === 'anchored' ? new Date() : null,
+					externalSubmissionStatus,
+					externalSubmissionResponse: externalResponse,
+					externalSubmittedAt:
+						externalSubmissionStatus === 'submitted' ? new Date() : null,
 					failureReason:
-						externalAnchorStatus === 'failed'
+						externalSubmissionStatus === 'failed'
 							? (externalResponse?.msg ??
-								'Audit-proof backend rejected tombstone anchor')
+								'Audit-proof backend rejected tombstone submission')
 							: null,
 					updatedAt: new Date(),
 				})
@@ -251,12 +254,12 @@ export class DeletedEmailTombstoneService {
 					tombstoneKey: deletedEmailTombstones.tombstoneKey,
 					tombstoneRootHash: deletedEmailTombstones.tombstoneRootHash,
 					deletedAt: deletedEmailTombstones.deletedAt,
-					externalAnchorStatus: deletedEmailTombstones.externalAnchorStatus,
+					externalSubmissionStatus: deletedEmailTombstones.externalSubmissionStatus,
 					physicalDeletionStatus: deletedEmailTombstones.physicalDeletionStatus,
 				});
 
-			if (externalAnchorStatus !== 'anchored') {
-				throw new Error('External tombstone anchor failed');
+			if (externalSubmissionStatus !== 'submitted') {
+				throw new Error('External tombstone submission failed');
 			}
 
 			return updated ?? created;
@@ -264,16 +267,16 @@ export class DeletedEmailTombstoneService {
 			await db
 				.update(deletedEmailTombstones)
 				.set({
-					externalAnchorStatus: 'failed',
+					externalSubmissionStatus: 'failed',
 					failureReason:
 						error instanceof Error
 							? error.message
-							: 'Unknown audit-proof tombstone failure',
+							: 'Unknown audit-proof tombstone submission failure',
 					updatedAt: new Date(),
 				})
 				.where(eq(deletedEmailTombstones.id, tombstoneId));
 
-			throw new Error('External tombstone anchor failed');
+			throw new Error('External tombstone submission failed');
 		}
 	}
 

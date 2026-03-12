@@ -13,7 +13,7 @@ import {
 	uuid,
 	varchar,
 } from 'drizzle-orm/pg-core';
-import { archivedEmails } from './archived-emails';
+import { archivedEmails, auditProofSubmissionStatusEnum } from './archived-emails';
 import { users } from './users';
 
 // --- Enums ---
@@ -21,13 +21,6 @@ import { users } from './users';
 export const retentionActionEnum = pgEnum('retention_action', [
 	'delete_permanently',
 	'notify_admin',
-]);
-
-export const tombstoneExternalAnchorStatusEnum = pgEnum('tombstone_external_anchor_status', [
-	'pending',
-	'anchored',
-	'failed',
-	'skipped_not_configured',
 ]);
 
 export const tombstonePhysicalDeletionStatusEnum = pgEnum('tombstone_physical_deletion_status', [
@@ -112,11 +105,11 @@ export const deletedEmailTombstones = pgTable(
 		attachmentManifest: jsonb('attachment_manifest').notNull(),
 		tombstoneManifest: jsonb('tombstone_manifest').notNull(),
 		tombstoneRootHash: varchar('tombstone_root_hash', { length: 64 }).notNull().unique(),
-		externalAnchorStatus: tombstoneExternalAnchorStatusEnum('external_anchor_status')
+		externalSubmissionStatus: auditProofSubmissionStatusEnum('external_submission_status')
 			.notNull()
 			.default('pending'),
-		externalAnchorResponse: jsonb('external_anchor_response'),
-		externalAnchoredAt: timestamp('external_anchored_at', { withTimezone: true }),
+		externalSubmissionResponse: jsonb('external_submission_response'),
+		externalSubmittedAt: timestamp('external_submitted_at', { withTimezone: true }),
 		physicalDeletionStatus: tombstonePhysicalDeletionStatusEnum('physical_deletion_status')
 			.notNull()
 			.default('pending'),

@@ -43,6 +43,15 @@ export interface AuditProofVerificationResult {
 	error?: string;
 }
 
+export const AuditProofSubmissionStatuses = [
+	'pending',
+	'submitted',
+	'failed',
+	'skipped_not_configured',
+] as const;
+
+export type AuditProofSubmissionStatus = (typeof AuditProofSubmissionStatuses)[number];
+
 /**
  * Represents a single archived email.
  */
@@ -69,6 +78,11 @@ export interface ArchivedEmail {
 	path: string | null;
 	tags: string[] | null;
 	auditProofVerification?: AuditProofVerificationResult | null;
+	auditProofSubmissionStatus?: AuditProofSubmissionStatus;
+	auditProofSubmittedAt?: Date | null;
+	auditProofLastSubmissionAttemptAt?: Date | null;
+	auditProofSubmissionAttempts?: number;
+	auditProofLastSubmissionError?: string | null;
 	localIntegrity?: LocalIntegrityResult;
 	externalProof?: ExternalProofResult;
 	verificationRootHash?: string | null;
