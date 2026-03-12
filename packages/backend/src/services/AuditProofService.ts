@@ -13,6 +13,11 @@ interface AuditProofResponse {
 	log?: Record<string, { res: string; msg: string }>;
 }
 
+export interface AuditProofStoreResult extends AuditProofResponse {
+	httpStatus: number;
+	error?: string;
+}
+
 export class AuditProofService {
 	private buildKey(instanceId: string, archivedEmailId: string): string {
 		return `${instanceId}:${archivedEmailId}`;
@@ -37,17 +42,39 @@ export class AuditProofService {
 		return Boolean(this.getBaseUrl(settings) && this.getInstanceId(settings));
 	}
 
+	public isConfigured(settings: SystemSettings): boolean {
+		return this.isEnabled(settings);
+	}
+
+	public async saveHashForKey(
+		settings: SystemSettings,
+		key: string,
+		hash: string
+	): Promise<AuditProofStoreResult | null> {
+		if (!this.isEnabled(settings)) {
+			return null;
+		}
+
+		const { status, body } = await this.post(settings, '/save', { key, value: hash });
+
+		return {
+			...body,
+			httpStatus: status,
+		};
+	}
+
 	public async saveEmailHash(
 		settings: SystemSettings,
 		archivedEmailId: string,
 		hash: string
-	): Promise<void> {
-		if (!this.isEnabled(settings)) {
-			return;
+	): Promise<AuditProofStoreResult | null> {
+		const instanceId = this.getInstanceId(settings);
+		if (!instanceId) {
+			return null;
 		}
 
-		const key = this.buildKey(this.getInstanceId(settings) as string, archivedEmailId);
-		await this.post(settings, '/save', { key, value: hash });
+		const key = this.buildKey(instanceId, archivedEmailId);
+		return this.saveHashForKey(settings, key, hash);
 	}
 
 	public async verifyEmailHash(

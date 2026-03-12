@@ -27,3 +27,8 @@ export const indexingQueue = new Queue('indexing', {
 	connection,
 	defaultJobOptions,
 });
+
+export const auditProofSubmissionQueue = new Queue('audit-proof-submission', {
+	connection,
+	defaultJobOptions,
+});

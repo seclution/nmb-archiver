@@ -32,11 +32,11 @@ import { FilterBuilder } from './FilterBuilder';
 import { AuditService } from './AuditService';
 import { User } from '@open-archiver/types';
 import { checkDeletionEnabled } from '../helpers/deletionGuard';
-import { SettingsService } from './SettingsService';
-import { AuditProofService } from './AuditProofService';
+import { AuditProofEmailSubmissionService } from './AuditProofEmailSubmissionService';
 
 export class IngestionService {
 	private static auditService = new AuditService();
+	private static auditProofEmailSubmissionService = new AuditProofEmailSubmissionService();
 	private static decryptSource(
 		source: typeof ingestionSources.$inferSelect
 	): IngestionSource | null {
@@ -563,22 +563,22 @@ export class IngestionService {
 
 			await db
 				.update(archivedEmails)
-				.set({ verificationRootHash })
+				.set({
+					verificationRootHash,
+					auditProofSubmissionStatus: 'pending',
+					auditProofSubmittedAt: null,
+					auditProofLastSubmissionError: null,
+				})
 				.where(eq(archivedEmails.id, archivedEmail.id));
 
 			try {
-				const settingsService = new SettingsService();
-				const systemSettings = await settingsService.getSystemSettings();
-				const auditProofService = new AuditProofService();
-				await auditProofService.saveEmailHash(
-					systemSettings,
-					archivedEmail.id,
-					verificationRootHash
+				await IngestionService.auditProofEmailSubmissionService.enqueueEmailSubmission(
+					archivedEmail.id
 				);
 			} catch (error) {
 				logger.warn(
 					{ archivedEmailId: archivedEmail.id, error },
-					'Failed to push email verification root hash to audit-proof backend'
+					'Failed to enqueue email verification root hash for audit-proof submission'
 				);
 			}
 

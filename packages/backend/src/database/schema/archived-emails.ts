@@ -1,6 +1,23 @@
 import { relations } from 'drizzle-orm';
-import { boolean, jsonb, pgTable, text, timestamp, uuid, bigint, index } from 'drizzle-orm/pg-core';
+import {
+	boolean,
+	jsonb,
+	pgEnum,
+	pgTable,
+	text,
+	timestamp,
+	uuid,
+	bigint,
+	index,
+	integer,
+} from 'drizzle-orm/pg-core';
 import { ingestionSources } from './ingestion-sources';
+import { AuditProofSubmissionStatuses } from '@open-archiver/types';
+
+export const auditProofSubmissionStatusEnum = pgEnum(
+	'audit_proof_submission_status',
+	AuditProofSubmissionStatuses
+);
 
 export const archivedEmails = pgTable(
 	'archived_emails',
@@ -20,6 +37,19 @@ export const archivedEmails = pgTable(
 		storagePath: text('storage_path').notNull(),
 		storageHashSha256: text('storage_hash_sha256').notNull(),
 		verificationRootHash: text('verification_root_hash'),
+		auditProofSubmissionStatus: auditProofSubmissionStatusEnum(
+			'audit_proof_submission_status'
+		)
+			.notNull()
+			.default('pending'),
+		auditProofSubmittedAt: timestamp('audit_proof_submitted_at', { withTimezone: true }),
+		auditProofLastSubmissionAttemptAt: timestamp('audit_proof_last_submission_attempt_at', {
+			withTimezone: true,
+		}),
+		auditProofSubmissionAttempts: integer('audit_proof_submission_attempts')
+			.notNull()
+			.default(0),
+		auditProofLastSubmissionError: text('audit_proof_last_submission_error'),
 		sizeBytes: bigint('size_bytes', { mode: 'number' }).notNull(),
 		isIndexed: boolean('is_indexed').notNull().default(false),
 		hasAttachments: boolean('has_attachments').notNull().default(false),

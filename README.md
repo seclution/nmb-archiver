@@ -17,6 +17,7 @@ Der Fokus dieses Forks liegt auf dem produktiven Einsatz für Kundenumgebungen u
 
 - Revisionssichere Archivierung mit deterministischer Hash- und Manifestbildung
 - Externe Audit-Proof-Anbindung für `save` und `verify`
+- Persistente Retry-Queue für Audit-Proof-Submissions
 - Selbst gehostete Infrastruktur ohne Vendor-Lock-in
 - Saubere Fork-Weiterentwicklung auf Basis des öffentlichen Upstreams
 
@@ -34,7 +35,7 @@ Der Fokus dieses Forks liegt auf dem produktiven Einsatz für Kundenumgebungen u
 1. Beim Ingest werden Mail- und Attachment-Hashes berechnet.
 2. Daraus wird ein kanonisches Manifest gebildet.
 3. Aus dem Manifest wird ein deterministischer `verificationRootHash` abgeleitet.
-4. Dieser Root-Hash wird lokal gespeichert und an das externe Audit-Proof-Backend übergeben.
+4. Dieser Root-Hash wird lokal gespeichert, persistiert eingereiht und an das externe Audit-Proof-Backend übergeben.
 5. Beim Verify werden die Storage-Bytes erneut gehasht, das Manifest neu aufgebaut und sowohl gegen die lokale DB als auch gegen das externe Backend geprüft.
 
 Die technische Dokumentation liegt in [docs/api/audit-proof-save-verify-validation.md](docs/api/audit-proof-save-verify-validation.md), [docs/api/integrity.md](docs/api/integrity.md) und [docs/user-guides/integrity-check.md](docs/user-guides/integrity-check.md).
