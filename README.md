@@ -16,7 +16,7 @@ Der Fokus dieses Forks liegt auf dem produktiven Einsatz für unsere Kundenumgeb
 ## Zielbild
 
 - Revisionssichere Archivierung mit deterministischer Hash- und Manifestbildung
-- Externe Verankerung der Verifikationswurzel in einem separaten Audit-Proof-Backend
+- Asynchrone Submission der Verifikationswurzel an ein separates Audit-Proof-Backend
 - Prüfbarkeit von `save`- und `verify`-Pfaden über eine dokumentierte Beweiskette
 - Selbst gehostete Infrastruktur ohne Vendor-Lock-in
 - Fork-fähige Weiterentwicklung auf Basis des öffentlichen AGPL-Upstreams
@@ -29,7 +29,7 @@ Der Fokus dieses Forks liegt auf dem produktiven Einsatz für unsere Kundenumgeb
 - **Suche und eDiscovery**: Volltextsuche über E-Mails und Attachments
 - **Integritätsprüfung**: lokale Rehash-Prüfung für Mail und Attachments
 - **Audit-Proof-Verifikation**: externer Nachweis über `verificationRootHash`
-- **Delete Tombstones**: kontrollierte Löschungen mit Begründung, Tombstone-Manifest und externer Verankerung
+- **Delete Tombstones**: kontrollierte Löschungen mit Begründung, Tombstone-Manifest und externer Submission
 - **Audit-Log**: nachvollziehbare System- und Löschereignisse mit Hash-Evidenz
 
 ## Revisionssichere Kette
@@ -39,9 +39,9 @@ NMB Archiver erweitert den Upstream um eine dokumentierte Prüfkette:
 1. Beim Ingest werden Mail- und Attachment-Hashes berechnet.
 2. Daraus wird ein kanonisches Manifest gebildet.
 3. Aus dem Manifest wird ein deterministischer `verificationRootHash` abgeleitet.
-4. Dieser Root-Hash wird lokal gespeichert und an das externe Audit-Proof-Backend übertragen.
-5. Beim Verify werden die Storage-Bytes erneut gehasht, das Manifest neu aufgebaut und sowohl gegen die lokale DB als auch gegen das externe Backend geprüft.
-6. Vor jeder kontrollierten Löschung wird ein Tombstone mit eigener Hash-Evidenz erzeugt und bei konfigurierter Audit-Proof-Integration extern verankert.
+4. Dieser Root-Hash wird lokal gespeichert, als `pending` markiert und ueber eine persistente Queue an das externe Audit-Proof-Backend uebergeben.
+5. Das Audit-Proof-Backend verarbeitet diese `/save`-Submissions asynchron; der spaetere Verify ist die belastbare Punkt-in-Zeit-Pruefung.
+6. Vor jeder kontrollierten Loeschung wird ein Tombstone mit eigener Hash-Evidenz erzeugt und bei konfigurierter Audit-Proof-Integration extern ueber `/save` eingereicht.
 
 Die zugehörige technische Dokumentation liegt in [docs/api/audit-proof-save-verify-validation.md](docs/api/audit-proof-save-verify-validation.md), [docs/api/deletion-tombstones.md](docs/api/deletion-tombstones.md) und [docs/user-guides/integrity-check.md](docs/user-guides/integrity-check.md).
 

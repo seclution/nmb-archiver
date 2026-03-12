@@ -1,7 +1,7 @@
 # Audit-Proof Integration: Save/Verify Validierungs-Matrix
 
 Diese Datei beschreibt die revisionssichere Beweiskette von NMB Archiver zwischen
-lokaler Archivierung, kanonischer Hash-Bildung und externer Audit-Proof-Verankerung.
+lokaler Archivierung, kanonischer Hash-Bildung und asynchroner Audit-Proof-Submission.
 Sie ist als technische Referenz fuer Entwicklung, Audit, Forensik und Compliance gedacht.
 
 ## 1. Ziel und Aussage der Beweiskette
@@ -10,7 +10,7 @@ Die Kette soll fuer eine archivierte E-Mail nachweisbar machen:
 
 1. welche Bytes beim Ingest archiviert wurden,
 2. welcher deterministische Root-Hash daraus entstanden ist,
-3. welcher Root-Hash extern im Audit-Proof-Backend verankert wurde,
+3. welcher Root-Hash dem externen Audit-Proof-Backend erfolgreich uebergeben wurde,
 4. ob spaeter bei einer Verifikation dieselben Bytes und dieselbe Root-Hash-Kette erneut belegt werden koennen.
 
 Die zentrale Aussage lautet damit nicht nur "Datei vorhanden", sondern:
@@ -19,7 +19,8 @@ Die zentrale Aussage lautet damit nicht nur "Datei vorhanden", sondern:
 - die gespeicherten Attachments sind unveraendert,
 - das daraus abgeleitete kanonische Manifest ist unveraendert,
 - der gespeicherte `verificationRootHash` in der Datenbank ist unveraendert,
-- der externe Audit-Proof-Nachweis passt weiterhin zu genau diesem Root-Hash.
+- die `/save`-Submission wurde lokal nachvollziehbar erfasst,
+- der externe Audit-Proof-Nachweis passt bei einer spaeteren `/verify`-Momentaufnahme weiterhin zu genau diesem Root-Hash.
 
 ## 2. Architekturueberblick
 
@@ -37,7 +38,13 @@ verificationRootHash = SHA256(JSON(manifest))
         |
         +--> Speicherung in archived_emails.verification_root_hash
         |
-        +--> POST /save an Audit-Proof-Backend
+        +--> Status "pending" + Queue-Job
+                    |
+                    v
+              POST /save an Audit-Proof-Backend
+                    |
+                    v
+              Status "submitted"
 
 Spaetere Verifikation:
 Storage-Bytes neu lesen -> neu hashen -> Manifest neu bilden -> Root neu berechnen
@@ -78,18 +85,32 @@ Storage-Bytes neu lesen -> neu hashen -> Manifest neu bilden -> Root neu berechn
       `sha256(JSON.stringify({ emailHashSha256, attachments }))`
     - Die Reihenfolge ist deterministisch. Save und Verify rechnen damit ueber dieselbe logische Struktur.
 
-### 3.4 Speicherung in der DB und externer Push
+### 3.4 Speicherung in der DB und persistente Submission
 
 - Datei: `packages/backend/src/services/IngestionService.ts`
 - Relevanz:
     - `verificationRootHash` wird in `archived_emails.verification_root_hash` gespeichert.
-    - Danach folgt `AuditProofService.saveEmailHash(systemSettings, archivedEmail.id, verificationRootHash)`.
-    - Fehler beim externen Push blockieren den Ingest aktuell nicht; sie werden geloggt.
+    - Gleichzeitig wird `auditProofSubmissionStatus='pending'` gesetzt.
+    - Danach wird ein persistenter Queue-Job fuer die externe `/save`-Submission angelegt.
 
-### 3.5 Exakte `/save`-Payload
+### 3.5 Retry- und Replay-Modell
+
+- Dateien:
+    - `packages/backend/src/services/AuditProofEmailSubmissionService.ts`
+    - `packages/backend/src/jobs/processors/submit-email-proof.processor.ts`
+    - `packages/backend/src/jobs/processors/schedule-audit-proof-submission-retry.processor.ts`
+    - `packages/backend/src/jobs/schedulers/sync-scheduler.ts`
+- Relevanz:
+    - Die Anwendung behandelt einen erfolgreichen `/save`-HTTP-Call als `submitted`.
+    - Das ist kein spaeter persistierter "verified"-Status, sondern nur der belastbare Handover an das Audit-Proof-Backend.
+    - Falls `/save` fehlschlaegt, bleibt der Datensatz in `failed` und wird ueber den Scheduler erneut eingereiht.
+    - Falls Audit-Proof noch nicht konfiguriert ist, wird `skipped_not_configured` gesetzt; nach spaeterer Konfiguration koennen dieselben Datensaetze rueckwirkend erneut eingereicht werden.
+    - Damit gehen `/save`-Requests aus Applikationssicht nicht mehr verloren.
+
+### 3.6 Exakte `/save`-Payload
 
 - Datei: `packages/backend/src/services/AuditProofService.ts`
-- Key-Form:
+- Key-Form aktuell:
     - `${instanceId}:${archivedEmailId}`
 - Request:
 
@@ -103,6 +124,17 @@ Storage-Bytes neu lesen -> neu hashen -> Manifest neu bilden -> Root neu berechn
 - Transport:
     - `POST {baseUrl}/save`
     - `Content-Type: application/json`
+
+### 3.7 Bedeutung von `submitted`
+
+Ein `submitted` in NMB Archiver bedeutet:
+
+1. der Datensatz wurde lokal archiviert,
+2. der deterministische Root-Hash wurde gespeichert,
+3. das Audit-Proof-Backend hat die `/save`-Submission ohne Fehler angenommen.
+
+Es bedeutet bewusst **nicht**, dass NMB Archiver einen finalen externen Anchor-Zeitpunkt lokal
+persistiert. Die eigentliche Spaetverarbeitung liegt im Audit-Proof-Backend.
 
 ## 4. Verify-Flow (Rehash -> Manifest -> `/verify`)
 
@@ -156,6 +188,7 @@ Storage-Bytes neu lesen -> neu hashen -> Manifest neu bilden -> Root neu berechn
     - Der Timestamp wird aus `archived_emails.archived_at` abgeleitet:
       `Math.floor(new Date(email.archivedAt).getTime() / 1000)`
     - Damit wird in Unix-Sekunden der Archivierungszeitpunkt als Teil des Verify-Calls uebergeben.
+    - Die Applikation speichert keinen separaten "extern final verankert"-Status; `verify` bleibt eine reine Punkt-in-Zeit-Pruefung.
 
 ### 4.7 Exakte `/verify`-Payload
 
@@ -205,6 +238,16 @@ Erst die Kombination aus lokaler Rehash-Pruefung und externer Root-Hash-Verifika
     - Die Integration ist nur aktiv, wenn URL und `instanceId` vorhanden sind.
     - Optionaler URL-Fallback ueber `AUDIT_PROOF_BACKEND_URL`.
 
+### 6.3 Scheduler fuer persistente `/save`-Submissions
+
+- Dateien:
+    - `.env.example`
+    - `open-archiver.yml`
+    - `packages/backend/src/config/app.ts`
+- Relevanz:
+    - `AUDIT_PROOF_SUBMISSION_FREQUENCY` steuert den Replay-Zyklus fuer `pending`, `failed` und `skipped_not_configured`.
+    - Standard ist `* * * * *`, also ein Retry pro Minute.
+
 ## 7. Debugging und Nachvollziehbarkeit
 
 ### 7.1 Debug-Logs fuer Request und Response
@@ -234,6 +277,11 @@ Erst die Kombination aus lokaler Rehash-Pruefung und externer Root-Hash-Verifika
 - Felder:
     - `storage_hash_sha256`
     - `verification_root_hash`
+    - `audit_proof_submission_status`
+    - `audit_proof_submitted_at`
+    - `audit_proof_last_submission_attempt_at`
+    - `audit_proof_submission_attempts`
+    - `audit_proof_last_submission_error`
     - `archived_at`
 
 ### 8.2 Attachments
@@ -252,13 +300,14 @@ Fuer eine belastbare Stichprobe oder einen formalen Audit-Check sollten mindeste
 4. Sind `localIntegrity` und `externalProof` jeweils gueltig?
 5. Enthalten die Befunde keine `email`, `attachment` oder `verification_root`-Fehler?
 6. Wurde fuer denselben Datensatz ein plausibler `archived_at`-Zeitpunkt an `/verify` uebergeben?
-7. Sind bei Bedarf die Debug-Logs vorhanden, um Payload und Response forensisch nachzuvollziehen?
+7. Ist fuer den Datensatz `audit_proof_submission_status='submitted'` oder gibt es einen nachvollziehbaren Retry-/Fehlerstatus?
+8. Sind bei Bedarf die Debug-Logs vorhanden, um Payload und Response forensisch nachzuvollziehen?
 
 ## 10. Grenzen der aktuellen Loesung
 
 Die aktuelle Implementierung deckt Save und Verify fuer die unveraenderte Existenz eines Archivobjekts gut ab, aber nicht jede denkbare Compliance-Anforderung:
 
-- Wenn der externe `/save`-Call fehlschlaegt, wird der Ingest aktuell nicht hart abgebrochen.
+- Die App speichert bewusst keinen finalen externen Verankerungsstatus; sie kennt nur den erfolgreichen `/save`-Handover (`submitted`) und den spaeteren Punkt-in-Zeit-Befund aus `/verify`.
 - Die Anwendung kann technische Out-of-Band-Loeschungen in Datenbank oder Object Storage nicht verhindern.
 - Fuer Tombstones gibt es aktuell noch keine eigene Auditor-UI oder einen separaten Verify-Endpunkt in der API.
 - Die Aussage ist objektbezogen. Prozesskontrollen wie Vier-Augen-Freigaben oder Retention-Governance liegen ausserhalb dieser Datei.
@@ -278,10 +327,10 @@ Vor der physischen Loeschung passiert:
 4. Daraus wird ein eigener `tombstoneRootHash` berechnet.
 5. Der Tombstone wird lokal in `deleted_email_tombstones` gespeichert.
 6. Wenn Audit-Proof konfiguriert ist, wird derselbe Tombstone ueber den bestehenden `POST /save`
-   Mechanismus extern verankert.
+   Mechanismus extern uebergeben und als `submitted` behandelt.
 7. Erst danach werden Dateien, Suchindex und Datenbankeintrag physisch entfernt.
 
-Wenn die externe Tombstone-Verankerung fehlschlaegt und Audit-Proof aktiv ist, wird die physische Loeschung abgebrochen.
+Wenn die externe Tombstone-Submission fehlschlaegt und Audit-Proof aktiv ist, wird die physische Loeschung abgebrochen.
 
 ## 12. Aktueller Tombstone-Nachweis
 
@@ -289,7 +338,7 @@ Der Delete-Nachweis besteht jetzt aus drei Ebenen:
 
 1. **Lokaler Tombstone-Datensatz**
     - mit Manifest, Root-Hash, Loeschgrund, Actor und Status des physisch abgeschlossenen Deletes
-2. **Externer Anchor**
+2. **Externe Submission**
     - ueber separaten Key-Namespace wie
       `instance-id:tombstone:archived-email-id:tombstone-id`
 3. **Hash-verkettetes Audit-Log**
@@ -301,11 +350,11 @@ Damit ist heute bereits nicht nur "unveraendert vorhanden", sondern auch "kontro
 
 Die aktuelle Save/Verify-Kette von NMB Archiver ist fuer den Objektbestand bereits belastbar:
 
-1. Save verankert den deterministisch gebildeten `verificationRootHash`, nicht nur den Rohmail-Hash.
+1. Save uebergibt den deterministisch gebildeten `verificationRootHash` asynchron an das Audit-Proof-Backend, nicht nur den Rohmail-Hash.
 2. Verify rehasht E-Mail und Attachments aus dem aktuellen Storage erneut.
 3. Verify prueft zusaetzlich den in der DB gespeicherten `verification_root_hash`.
 4. Verify sendet `key + value(rootHash) + timestamp(archivedAt)` an `/verify`.
-5. Kontrollierte Loeschungen erzeugen jetzt einen eigenen Tombstone mit `tombstoneRootHash`, lokaler Persistenz und externer Verankerung ueber den bestehenden Audit-Proof-Mechanismus.
+5. Kontrollierte Loeschungen erzeugen jetzt einen eigenen Tombstone mit `tombstoneRootHash`, lokaler Persistenz und externer Submission ueber den bestehenden Audit-Proof-Mechanismus.
 6. Das Audit-Log verweist zusaetzlich auf denselben Delete-Nachweis.
 
 Der wichtigste verbleibende Ausbaupunkt liegt jetzt nicht mehr im Tombstone selbst, sondern in Auditor-UI, Tombstone-Verifikation und Reconciliation gegen unkontrollierte Out-of-Band-Loeschungen.

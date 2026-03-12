@@ -116,9 +116,12 @@ Before the archived object is physically removed, NMB Archiver:
 2. creates a canonical tombstone manifest,
 3. computes `tombstoneRootHash`,
 4. persists the tombstone locally,
-5. anchors the tombstone externally when Audit-Proof is configured.
+5. submits the tombstone externally when Audit-Proof is configured.
 
-If external anchoring fails while Audit-Proof is configured, deletion is aborted.
+The application treats a successful `POST /save` response as `submitted`; asynchronous backend
+processing continues afterwards inside the Audit-Proof system.
+
+If external tombstone submission fails while Audit-Proof is configured, deletion is aborted.
 
 #### Responses
 
@@ -127,7 +130,7 @@ If external anchoring fails while Audit-Proof is configured, deletion is aborted
 - **403 Forbidden:** The actor is not allowed to delete this archived email.
 - **404 Not Found:** The archived email was not found.
 - **409 Conflict:** Deletion is blocked by retention or legal hold enforcement.
-- **503 Service Unavailable:** The external tombstone anchor failed.
+- **503 Service Unavailable:** The external tombstone submission failed.
 - **500 Internal Server Error:** An unexpected error occurred.
 
 ## Service Methods
