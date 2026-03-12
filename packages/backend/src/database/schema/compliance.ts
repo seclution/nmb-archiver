@@ -1,6 +1,8 @@
 import { relations } from 'drizzle-orm';
 import {
 	boolean,
+	bigint,
+	index,
 	integer,
 	jsonb,
 	pgEnum,
@@ -19,6 +21,19 @@ import { users } from './users';
 export const retentionActionEnum = pgEnum('retention_action', [
 	'delete_permanently',
 	'notify_admin',
+]);
+
+export const tombstoneExternalAnchorStatusEnum = pgEnum('tombstone_external_anchor_status', [
+	'pending',
+	'anchored',
+	'failed',
+	'skipped_not_configured',
+]);
+
+export const tombstonePhysicalDeletionStatusEnum = pgEnum('tombstone_physical_deletion_status', [
+	'pending',
+	'completed',
+	'failed',
 ]);
 
 // --- Tables ---
@@ -49,18 +64,20 @@ export const retentionLabels = pgTable('retention_labels', {
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const emailRetentionLabels = pgTable('email_retention_labels', {
-	emailId: uuid('email_id')
-		.references(() => archivedEmails.id, { onDelete: 'cascade' })
-		.notNull(),
-	labelId: uuid('label_id')
-		.references(() => retentionLabels.id, { onDelete: 'cascade' })
-		.notNull(),
-	appliedAt: timestamp('applied_at', { withTimezone: true }).notNull().defaultNow(),
-	appliedByUserId: uuid('applied_by_user_id').references(() => users.id),
-}, (t) => [
-	primaryKey({ columns: [t.emailId, t.labelId] }),
-]);
+export const emailRetentionLabels = pgTable(
+	'email_retention_labels',
+	{
+		emailId: uuid('email_id')
+			.references(() => archivedEmails.id, { onDelete: 'cascade' })
+			.notNull(),
+		labelId: uuid('label_id')
+			.references(() => retentionLabels.id, { onDelete: 'cascade' })
+			.notNull(),
+		appliedAt: timestamp('applied_at', { withTimezone: true }).notNull().defaultNow(),
+		appliedByUserId: uuid('applied_by_user_id').references(() => users.id),
+	},
+	(t) => [primaryKey({ columns: [t.emailId, t.labelId] })]
+);
 
 export const retentionEvents = pgTable('retention_events', {
 	id: uuid('id').defaultRandom().primaryKey(),
@@ -70,6 +87,53 @@ export const retentionEvents = pgTable('retention_events', {
 	targetCriteria: jsonb('target_criteria').notNull(),
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const deletedEmailTombstones = pgTable(
+	'deleted_email_tombstones',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		archivedEmailId: uuid('archived_email_id').notNull(),
+		ingestionSourceId: uuid('ingestion_source_id').notNull(),
+		tombstoneKey: text('tombstone_key').notNull().unique(),
+		deletionMode: varchar('deletion_mode', { length: 32 }).notNull(),
+		deletionReason: text('deletion_reason').notNull(),
+		governingRule: text('governing_rule'),
+		actorIdentifier: text('actor_identifier').notNull(),
+		actorIp: text('actor_ip').notNull(),
+		messageIdHeader: text('message_id_header'),
+		subject: text('subject'),
+		senderEmail: text('sender_email').notNull(),
+		sentAt: timestamp('sent_at', { withTimezone: true }).notNull(),
+		archivedAt: timestamp('archived_at', { withTimezone: true }).notNull(),
+		deletedAt: timestamp('deleted_at', { withTimezone: true }).notNull(),
+		sizeBytes: bigint('size_bytes', { mode: 'number' }).notNull(),
+		storageHashSha256: text('storage_hash_sha256').notNull(),
+		verificationRootHash: text('verification_root_hash'),
+		attachmentManifest: jsonb('attachment_manifest').notNull(),
+		tombstoneManifest: jsonb('tombstone_manifest').notNull(),
+		tombstoneRootHash: varchar('tombstone_root_hash', { length: 64 }).notNull().unique(),
+		externalAnchorStatus: tombstoneExternalAnchorStatusEnum('external_anchor_status')
+			.notNull()
+			.default('pending'),
+		externalAnchorResponse: jsonb('external_anchor_response'),
+		externalAnchoredAt: timestamp('external_anchored_at', { withTimezone: true }),
+		physicalDeletionStatus: tombstonePhysicalDeletionStatusEnum('physical_deletion_status')
+			.notNull()
+			.default('pending'),
+		physicalDeletionCompletedAt: timestamp('physical_deletion_completed_at', {
+			withTimezone: true,
+		}),
+		failureReason: text('failure_reason'),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+	},
+	(table) => ({
+		archivedEmailIdIdx: index('deleted_email_tombstones_archived_email_id_idx').on(
+			table.archivedEmailId
+		),
+		deletedAtIdx: index('deleted_email_tombstones_deleted_at_idx').on(table.deletedAt),
+	})
+);
 
 export const ediscoveryCases = pgTable('ediscovery_cases', {
 	id: uuid('id').primaryKey().defaultRandom(),
@@ -102,9 +166,7 @@ export const emailLegalHolds = pgTable(
 			.references(() => legalHolds.id, { onDelete: 'cascade' })
 			.notNull(),
 	},
-	(t) => [
-		primaryKey({ columns: [t.emailId, t.legalHoldId] }),
-	],
+	(t) => [primaryKey({ columns: [t.emailId, t.legalHoldId] })]
 );
 
 export const exportJobs = pgTable('export_jobs', {

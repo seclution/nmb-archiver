@@ -21,6 +21,15 @@ import { User } from '@open-archiver/types';
 import { checkDeletionEnabled } from '../helpers/deletionGuard';
 import { EmailVerificationService } from './EmailVerificationService';
 import { RetentionHook } from '../hooks/RetentionHook';
+import { DeletedEmailTombstoneService } from './DeletedEmailTombstoneService';
+
+const MANUAL_DELETE_REASON_REQUIRED = 'Manual delete reason is required';
+const MANUAL_DELETE_REASON_TOO_SHORT = 'Manual delete reason must be at least 10 characters long';
+const EXTERNAL_TOMBSTONE_ANCHOR_FAILED = 'External tombstone anchor failed';
+const DELETION_BLOCKED_BY_RETENTION =
+	'Deletion blocked by retention policy (Legal Hold or similar).';
+const NOT_AUTHORIZED_TO_DELETE = 'Not authorized to delete archived email';
+const ARCHIVED_EMAIL_NOT_FOUND = 'Archived email not found';
 
 interface DbRecipients {
 	to: { name: string; address: string }[];
@@ -31,6 +40,7 @@ interface DbRecipients {
 export class ArchivedEmailService {
 	private static auditService = new AuditService();
 	private static emailVerificationService = new EmailVerificationService();
+	private static deletedEmailTombstoneService = new DeletedEmailTombstoneService();
 	private static mapRecipients(dbRecipients: unknown): Recipient[] {
 		const { to = [], cc = [], bcc = [] } = dbRecipients as DbRecipients;
 
@@ -206,6 +216,7 @@ export class ArchivedEmailService {
 		actorIp: string,
 		options: {
 			systemDelete?: boolean;
+			reason?: string;
 			/**
 			 * Human-readable name of the retention rule that triggered deletion
 			 */
@@ -216,7 +227,15 @@ export class ArchivedEmailService {
 
 		const canDelete = await RetentionHook.canDelete(emailId);
 		if (!canDelete) {
-			throw new Error('Deletion blocked by retention policy (Legal Hold or similar).');
+			throw new Error(DELETION_BLOCKED_BY_RETENTION);
+		}
+
+		const deletionReason = options.reason?.trim() ?? '';
+		if (!options.systemDelete && !deletionReason) {
+			throw new Error(MANUAL_DELETE_REASON_REQUIRED);
+		}
+		if (!options.systemDelete && deletionReason.length < 10) {
+			throw new Error(MANUAL_DELETE_REASON_TOO_SHORT);
 		}
 
 		const [email] = await db
@@ -225,44 +244,61 @@ export class ArchivedEmailService {
 			.where(eq(archivedEmails.id, emailId));
 
 		if (!email) {
-			throw new Error('Archived email not found');
+			throw new Error(ARCHIVED_EMAIL_NOT_FOUND);
 		}
 
 		const authorizationService = new AuthorizationService();
 		const canDeleteEmail = await authorizationService.can(actor.id, 'delete', 'archive', email);
 		if (!canDeleteEmail) {
-			throw new Error('Not authorized to delete archived email');
+			throw new Error(NOT_AUTHORIZED_TO_DELETE);
 		}
 
 		const storage = new StorageService();
-		const attachmentsForAudit = email.hasAttachments
+		const attachmentsForEmail = email.hasAttachments
 			? await db
 					.select({
 						attachmentId: attachments.id,
 						filename: attachments.filename,
 						sizeBytes: attachments.sizeBytes,
 						contentHashSha256: attachments.contentHashSha256,
+						storagePath: attachments.storagePath,
 					})
 					.from(emailAttachments)
 					.innerJoin(attachments, eq(emailAttachments.attachmentId, attachments.id))
 					.where(eq(emailAttachments.emailId, emailId))
 			: [];
 
-		// Load and handle attachments before deleting the email itself
-		if (email.hasAttachments) {
-			const attachmentsForEmail = await db
-				.select({
-					attachmentId: attachments.id,
-					filename: attachments.filename,
-					sizeBytes: attachments.sizeBytes,
-					contentHashSha256: attachments.contentHashSha256,
-					storagePath: attachments.storagePath,
-				})
-				.from(emailAttachments)
-				.innerJoin(attachments, eq(emailAttachments.attachmentId, attachments.id))
-				.where(eq(emailAttachments.emailId, emailId));
+		const tombstone = await this.deletedEmailTombstoneService.createAndAnchorTombstone({
+			email: {
+				id: email.id,
+				ingestionSourceId: email.ingestionSourceId,
+				messageIdHeader: email.messageIdHeader,
+				subject: email.subject,
+				senderEmail: email.senderEmail,
+				sentAt: email.sentAt,
+				archivedAt: email.archivedAt,
+				sizeBytes: email.sizeBytes,
+				storageHashSha256: email.storageHashSha256,
+				verificationRootHash: email.verificationRootHash ?? null,
+			},
+			attachments: attachmentsForEmail.map((attachment) => ({
+				attachmentId: attachment.attachmentId,
+				filename: attachment.filename,
+				sizeBytes: attachment.sizeBytes,
+				contentHashSha256: attachment.contentHashSha256,
+			})),
+			actorIdentifier: actor.id,
+			actorIp,
+			reason: options.systemDelete
+				? deletionReason || 'Retention expiration'
+				: deletionReason,
+			deletionMode: options.systemDelete ? 'retention' : 'manual',
+			governingRule: options.governingRule,
+		});
 
-			try {
+		try {
+			// Load and handle attachments before deleting the email itself
+			if (email.hasAttachments) {
 				for (const attachment of attachmentsForEmail) {
 					// Delete the link between this email and the attachment record.
 					await db
@@ -288,24 +324,37 @@ export class ArchivedEmailService {
 							.where(eq(attachments.id, attachment.attachmentId));
 					}
 				}
-			} catch (error) {
-				console.error('Failed to delete email attachments', error);
-				throw new Error('Failed to delete email attachments');
 			}
+
+			// Delete the email file from storage
+			await storage.delete(email.storagePath);
+
+			const searchService = new SearchService();
+			await searchService.deleteDocuments('emails', [emailId]);
+
+			await db.delete(archivedEmails).where(eq(archivedEmails.id, emailId));
+			await this.deletedEmailTombstoneService.markDeletionCompleted(tombstone.id);
+		} catch (error) {
+			await this.deletedEmailTombstoneService.markDeletionFailed(tombstone.id, error);
+			if (error instanceof Error) {
+				throw error;
+			}
+			throw new Error('Failed to delete archived email');
 		}
-
-		// Delete the email file from storage
-		await storage.delete(email.storagePath);
-
-		const searchService = new SearchService();
-		await searchService.deleteDocuments('emails', [emailId]);
-
-		await db.delete(archivedEmails).where(eq(archivedEmails.id, emailId));
 
 		// Build audit details: system-initiated deletions carry retention context
 		// for GoBD compliance; manual deletions record only the reason.
 		const auditDetails: Record<string, unknown> = {
-			reason: options.systemDelete ? 'RetentionExpiration' : 'ManualDeletion',
+			deletionMode: options.systemDelete ? 'RetentionExpiration' : 'ManualDeletion',
+			reason: options.systemDelete
+				? deletionReason || 'Retention expiration'
+				: deletionReason,
+			tombstone: {
+				id: tombstone.id,
+				key: tombstone.tombstoneKey,
+				rootHash: tombstone.tombstoneRootHash,
+				externalAnchorStatus: tombstone.externalAnchorStatus,
+			},
 			evidence: {
 				messageIdHeader: email.messageIdHeader,
 				subject: email.subject,
@@ -317,7 +366,7 @@ export class ArchivedEmailService {
 				storageHashSha256: email.storageHashSha256,
 				verificationRootHash: email.verificationRootHash ?? null,
 				hadAttachments: email.hasAttachments,
-				attachments: attachmentsForAudit.map((attachment) => ({
+				attachments: attachmentsForEmail.map((attachment) => ({
 					attachmentId: attachment.attachmentId,
 					filename: attachment.filename,
 					sizeBytes: attachment.sizeBytes,
@@ -339,3 +388,12 @@ export class ArchivedEmailService {
 		});
 	}
 }
+
+export {
+	ARCHIVED_EMAIL_NOT_FOUND,
+	DELETION_BLOCKED_BY_RETENTION,
+	EXTERNAL_TOMBSTONE_ANCHOR_FAILED,
+	MANUAL_DELETE_REASON_REQUIRED,
+	MANUAL_DELETE_REASON_TOO_SHORT,
+	NOT_AUTHORIZED_TO_DELETE,
+};
