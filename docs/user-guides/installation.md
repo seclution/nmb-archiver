@@ -99,6 +99,7 @@ Here is a complete list of environment variables available for configuration:
 | `ORIGIN`                | Used by the SvelteKit Node adapter to determine the server's public-facing URL. It should always be set to the value of `APP_URL` (e.g., `ORIGIN=$APP_URL`). | `http://localhost:3000` |
 | `SYNC_FREQUENCY`        | The frequency of continuous email syncing. See [cron syntax](https://crontab.guru/) for more details.                                                        | `* * * * *`             |
 | `AUDIT_PROOF_SUBMISSION_FREQUENCY` | The retry cadence for pending or failed audit-proof `/save` submissions. See [cron syntax](https://crontab.guru/) for more details.                         | `* * * * *`             |
+| `AUDIT_PROOF_REQUEST_TIMEOUT_MS` | Timeout in milliseconds for audit-proof `/save` and `/verify` requests. Prevents hanging APS calls from blocking workers or integrity checks.                 | `5000`                  |
 | `ALL_INCLUSIVE_ARCHIVE` | Set to `true` to include all emails, including Junk and Trash folders, in the email archive.                                                                 | `false`                 |
 
 #### Docker Compose Service Configuration

@@ -41,10 +41,12 @@ inklusive Payload-Form, Hash/Timestamp-Herkunft und den Stellen, an denen Daten 
   - `packages/backend/src/jobs/processors/submit-email-proof.processor.ts`
   - `packages/backend/src/jobs/processors/schedule-audit-proof-submission-retry.processor.ts`
   - `packages/backend/src/jobs/schedulers/sync-scheduler.ts`
+  - `packages/backend/src/services/AuditProofService.ts`
 - Relevanz:
   - Ein erfolgreicher `/save`-HTTP-Call gilt aus Applikationssicht als `submitted`.
   - Fehlgeschlagene oder noch nicht konfigurierte Submissions bleiben lokal sichtbar und werden über den Scheduler erneut eingereiht.
   - Dadurch gehen Audit-Proof-Submissions nicht mehr verloren, auch wenn das Backend beim Ingest vorübergehend nicht erreichbar ist.
+  - `/save`-Requests laufen zusätzlich in ein konfigurierbares Timeout, damit ein hängendes Audit-Proof-Backend den Submission-Worker nicht unbegrenzt blockiert.
 
 ### 1.6 Exakte `/save` Request-Form
 - Datei: `packages/backend/src/services/AuditProofService.ts`
@@ -113,6 +115,7 @@ inklusive Payload-Form, Hash/Timestamp-Herkunft und den Stellen, an denen Daten 
     - `key: string` (`${instanceId}:${archivedEmailId}`)
     - `value: string` (`verificationRootHash` aus Rehash+Manifest)
     - `timestamp: number` (Unix-Sekunden aus `archivedAt`)
+  - Auch `/verify` nutzt dasselbe Request-Timeout, damit ein hängendes Audit-Proof-Backend keinen Integrity-Request unbegrenzt offen haelt.
 
 ## 3) Konfigurationsstellen, die Save/Verify aktivieren
 
@@ -139,6 +142,8 @@ inklusive Payload-Form, Hash/Timestamp-Herkunft und den Stellen, an denen Daten 
 - Relevanz:
   - `AUDIT_PROOF_SUBMISSION_FREQUENCY` steuert den Replay-Zyklus für `pending`, `failed` und `skipped_not_configured`.
   - Standard ist `* * * * *`, also ein Retry pro Minute.
+  - `AUDIT_PROOF_REQUEST_TIMEOUT_MS` begrenzt `/save`- und `/verify`-HTTP-Aufrufe gegen das Audit-Proof-Backend.
+  - Standard ist `5000`, also 5 Sekunden.
 
 ## 4) Wo du Payloads/Ergebnisse eindeutig prüfen kannst
 

@@ -15,6 +15,7 @@ services:
             - NODE_ENV=${NODE_ENV:-production}
             - SYNC_FREQUENCY=${SYNC_FREQUENCY:-* * * * *}
             - AUDIT_PROOF_SUBMISSION_FREQUENCY=${AUDIT_PROOF_SUBMISSION_FREQUENCY:-* * * * *}
+            - AUDIT_PROOF_REQUEST_TIMEOUT_MS=${AUDIT_PROOF_REQUEST_TIMEOUT_MS:-5000}
             - POSTGRES_DB=${POSTGRES_DB:-open_archive}
             - POSTGRES_USER=${POSTGRES_USER:-admin}
             - POSTGRES_PASSWORD=${SERVICE_PASSWORD_POSTGRES}

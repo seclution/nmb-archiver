@@ -27,7 +27,8 @@ High level wurden folgende Bereiche angepasst:
 3. Verify-Refactoring: Rehash aus aktuellen Storage-Bytes statt Vertrauen auf Altwerte
 4. DB-Referenzschutz: gespeicherter `verification_root_hash` wird gegen den frisch berechneten Root-Hash geprueft
 5. persistente Async-Submission mit Queue, Retry und Submission-Status
-6. NMB-Branding und Doku-Nachzug fuer die Release-basierte Fork-Linie
+6. konfigurierbarer Timeout-Schutz fuer haengende Audit-Proof-Requests
+7. NMB-Branding und Doku-Nachzug fuer die Release-basierte Fork-Linie
 
 Nicht Teil dieser Branch:
 
@@ -157,7 +158,31 @@ Das ist der zentrale Punkt fuer die manuelle Review:
 
 Damit ist der Handover an das externe System nicht mehr nur Glueckssache des Ingest-Moments.
 
-### 4. Verify prueft gegen den Ist-Zustand aus dem Storage
+### 4. Haengende APS-Requests blockieren nicht mehr unbegrenzt
+
+Die Branch fuehrt ein konfigurierbares Timeout fuer `/save` und `/verify` ein. Damit kann ein haengendes Audit-Proof-Backend weder den Submission-Worker noch einen Integrity-Request unbegrenzt offen halten.
+
+Referenzen:
+
+- [AuditProofService.ts#L103-L182](packages/backend/src/services/AuditProofService.ts#L103-L182)
+- [app.ts](packages/backend/src/config/app.ts)
+- [.env.example](.env.example)
+
+Snippet:
+
+```ts
+const timeoutMs = config.app.auditProofRequestTimeoutMs;
+const controller = new AbortController();
+const timeoutHandle = setTimeout(() => controller.abort(), timeoutMs);
+```
+
+Review-Fragen:
+
+- ist das Timeout fuer `fetch` und Response-Verarbeitung wirksam?
+- wird bei Timeout sauber gefailt statt ewig zu haengen?
+- ist der Default von `5000ms` fuer eure Betriebsrealitaet plausibel?
+
+### 5. Verify prueft gegen den Ist-Zustand aus dem Storage
 
 Der Verify-Pfad benutzt nicht einfach DB-Hashes, sondern liest die aktuelle Mail und alle Attachments erneut aus dem Storage, bildet daraus wieder das Manifest und leitet den Root-Hash neu ab.
 
@@ -179,7 +204,7 @@ const verificationRootHash = computeVerificationRootHash(manifest);
 
 Das ist revisionsrelevant, weil damit nicht nur "die Datenbank sagt passt" geprueft wird, sondern "die aktuell vorhandenen Bytes passen noch zur Beweiskette".
 
-### 5. DB-Referenz wird gegen den Rehash abgesichert
+### 6. DB-Referenz wird gegen den Rehash abgesichert
 
 Zusatzschutz: Wenn `verification_root_hash` in der DB manipuliert wird, faellt das bei Verify auf. Es wird also nicht nur Storage gegen DB geprueft, sondern auch die gespeicherte Root-Referenz gegen den frisch berechneten Manifest-Hash.
 
@@ -202,7 +227,7 @@ email.verificationRootHash === verificationRootHash
 		}
 ```
 
-### 6. Externe Verifikation ist eine Momentaufnahme, kein dauerhafter Status
+### 7. Externe Verifikation ist eine Momentaufnahme, kein dauerhafter Status
 
 Die Anwendung speichert **nicht** "verified". Stattdessen fuehrt sie bei Bedarf einen aktuellen `/verify`-Call aus.
 

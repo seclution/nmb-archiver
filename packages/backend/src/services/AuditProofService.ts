@@ -1,4 +1,5 @@
 import type { AuditProofVerificationResult, SystemSettings } from '@open-archiver/types';
+import { config } from '../config';
 import { logger } from '../config/logger';
 
 interface AuditProofPayload {
@@ -19,6 +20,10 @@ export interface AuditProofStoreResult extends AuditProofResponse {
 }
 
 export class AuditProofService {
+	private isAbortError(error: unknown): boolean {
+		return error instanceof Error && error.name === 'AbortError';
+	}
+
 	private buildKey(instanceId: string, archivedEmailId: string): string {
 		return `${instanceId}:${archivedEmailId}`;
 	}
@@ -110,6 +115,10 @@ export class AuditProofService {
 			throw new Error('Audit-proof backend URL is not configured');
 		}
 
+		const timeoutMs = config.app.auditProofRequestTimeoutMs;
+		const controller = new AbortController();
+		const timeoutHandle = setTimeout(() => controller.abort(), timeoutMs);
+
 		if (settings.auditProofDebugRequests) {
 			logger.info(
 				{ endpoint, payload, target: `${baseUrl}${endpoint}` },
@@ -117,42 +126,59 @@ export class AuditProofService {
 			);
 		}
 
-		const response = await fetch(`${baseUrl}${endpoint}`, {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-			},
-			body: JSON.stringify(payload),
-		});
-
-		let body: AuditProofResponse = {
-			res: response.ok ? 'SUCCESS' : 'ERROR',
-			msg: `HTTP ${response.status}`,
-		};
-
 		try {
-			body = (await response.json()) as AuditProofResponse;
+			const response = await fetch(`${baseUrl}${endpoint}`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify(payload),
+				signal: controller.signal,
+			});
+
+			let body: AuditProofResponse = {
+				res: response.ok ? 'SUCCESS' : 'ERROR',
+				msg: `HTTP ${response.status}`,
+			};
+
+			try {
+				body = (await response.json()) as AuditProofResponse;
+			} catch (error) {
+				if (this.isAbortError(error)) {
+					throw error;
+				}
+				logger.warn(
+					{ endpoint, status: response.status, error },
+					'Could not parse audit-proof backend response as JSON'
+				);
+			}
+
+			if (settings.auditProofDebugRequests) {
+				logger.info(
+					{ endpoint, status: response.status, response: body },
+					'Audit-proof response payload'
+				);
+			}
+
+			if (!response.ok && response.status !== 200 && response.status !== 503) {
+				logger.warn(
+					{ endpoint, status: response.status, body },
+					'Audit-proof backend returned non-success status'
+				);
+			}
+
+			return { status: response.status, body };
 		} catch (error) {
-			logger.warn(
-				{ endpoint, status: response.status, error },
-				'Could not parse audit-proof backend response as JSON'
-			);
+			if (this.isAbortError(error)) {
+				logger.warn(
+					{ endpoint, timeoutMs, target: `${baseUrl}${endpoint}` },
+					'Audit-proof request timed out'
+				);
+				throw new Error(`Audit-proof request to ${endpoint} timed out after ${timeoutMs}ms`);
+			}
+			throw error;
+		} finally {
+			clearTimeout(timeoutHandle);
 		}
-
-		if (settings.auditProofDebugRequests) {
-			logger.info(
-				{ endpoint, status: response.status, response: body },
-				'Audit-proof response payload'
-			);
-		}
-
-		if (!response.ok && response.status !== 200 && response.status !== 503) {
-			logger.warn(
-				{ endpoint, status: response.status, body },
-				'Audit-proof backend returned non-success status'
-			);
-		}
-
-		return { status: response.status, body };
 	}
 }
