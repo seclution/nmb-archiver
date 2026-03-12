@@ -1,12 +1,22 @@
 import { Job, Queue } from 'bullmq';
-import { ingestionQueue, indexingQueue } from '../jobs/queues';
+import {
+	auditProofSubmissionQueue,
+	complianceLifecycleQueue,
+	ingestionQueue,
+	indexingQueue,
+} from '../jobs/queues';
 import { IJob, IQueueCounts, IQueueDetails, IQueueOverview, JobStatus } from '@open-archiver/types';
 
 export class JobsService {
 	private queues: Queue[];
 
 	constructor() {
-		this.queues = [ingestionQueue, indexingQueue];
+		this.queues = [
+			ingestionQueue,
+			indexingQueue,
+			auditProofSubmissionQueue,
+			complianceLifecycleQueue,
+		];
 	}
 
 	public async getQueues(): Promise<IQueueOverview[]> {

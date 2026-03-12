@@ -25,7 +25,7 @@ import { DeletedEmailTombstoneService } from './DeletedEmailTombstoneService';
 
 const MANUAL_DELETE_REASON_REQUIRED = 'Manual delete reason is required';
 const MANUAL_DELETE_REASON_TOO_SHORT = 'Manual delete reason must be at least 10 characters long';
-const EXTERNAL_TOMBSTONE_ANCHOR_FAILED = 'External tombstone anchor failed';
+const EXTERNAL_TOMBSTONE_SUBMISSION_FAILED = 'External tombstone submission failed';
 const DELETION_BLOCKED_BY_RETENTION =
 	'Deletion blocked by retention policy (Legal Hold or similar).';
 const NOT_AUTHORIZED_TO_DELETE = 'Not authorized to delete archived email';
@@ -268,7 +268,7 @@ export class ArchivedEmailService {
 					.where(eq(emailAttachments.emailId, emailId))
 			: [];
 
-		const tombstone = await this.deletedEmailTombstoneService.createAndAnchorTombstone({
+		const tombstone = await this.deletedEmailTombstoneService.createAndSubmitTombstone({
 			email: {
 				id: email.id,
 				ingestionSourceId: email.ingestionSourceId,
@@ -353,7 +353,7 @@ export class ArchivedEmailService {
 				id: tombstone.id,
 				key: tombstone.tombstoneKey,
 				rootHash: tombstone.tombstoneRootHash,
-				externalAnchorStatus: tombstone.externalAnchorStatus,
+				externalSubmissionStatus: tombstone.externalSubmissionStatus,
 			},
 			evidence: {
 				messageIdHeader: email.messageIdHeader,
@@ -392,7 +392,7 @@ export class ArchivedEmailService {
 export {
 	ARCHIVED_EMAIL_NOT_FOUND,
 	DELETION_BLOCKED_BY_RETENTION,
-	EXTERNAL_TOMBSTONE_ANCHOR_FAILED,
+	EXTERNAL_TOMBSTONE_SUBMISSION_FAILED,
 	MANUAL_DELETE_REASON_REQUIRED,
 	MANUAL_DELETE_REASON_TOO_SHORT,
 	NOT_AUTHORIZED_TO_DELETE,

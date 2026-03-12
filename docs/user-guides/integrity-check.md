@@ -77,7 +77,7 @@ Before an archived email is physically removed, NMB Archiver now:
 2. builds a canonical tombstone manifest from the archived email metadata and attachment hashes,
 3. computes `tombstoneRootHash`,
 4. stores that tombstone locally in `deleted_email_tombstones`,
-5. anchors the tombstone externally through the existing audit-proof `POST /save` mechanism when Audit-Proof is configured,
+5. submits the tombstone externally through the existing audit-proof `POST /save` mechanism when Audit-Proof is configured,
 6. only then performs the physical deletion.
 
 This means a controlled delete can now prove:
@@ -86,10 +86,10 @@ This means a controlled delete can now prove:
 - which hash evidence existed at delete time,
 - who initiated the delete,
 - why the delete happened,
-- whether the external tombstone anchor succeeded,
+- whether the external tombstone submission succeeded,
 - whether the physical deletion completed.
 
-If the external anchor fails while Audit-Proof is configured, the delete is aborted.
+If the external submission fails while Audit-Proof is configured, the delete is aborted.
 
 ## Remaining boundary
 

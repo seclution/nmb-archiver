@@ -1,4 +1,4 @@
-import { ingestionQueue } from '../queues';
+import { auditProofSubmissionQueue, ingestionQueue } from '../queues';
 
 import { config } from '../../config';
 
@@ -16,6 +16,19 @@ const scheduleContinuousSync = async () => {
 	);
 };
 
-scheduleContinuousSync().then(() => {
-	console.log('Continuous sync scheduler started.');
+const scheduleAuditProofSubmissionRetries = async () => {
+	await auditProofSubmissionQueue.add(
+		'schedule-audit-proof-submission-retry',
+		{},
+		{
+			jobId: 'schedule-audit-proof-submission-retry',
+			repeat: {
+				pattern: config.app.auditProofSubmissionFrequency,
+			},
+		}
+	);
+};
+
+Promise.all([scheduleContinuousSync(), scheduleAuditProofSubmissionRetries()]).then(() => {
+	console.log('Background schedulers started.');
 });

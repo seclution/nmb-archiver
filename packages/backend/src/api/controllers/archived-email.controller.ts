@@ -3,7 +3,7 @@ import {
 	ArchivedEmailService,
 	ARCHIVED_EMAIL_NOT_FOUND,
 	DELETION_BLOCKED_BY_RETENTION,
-	EXTERNAL_TOMBSTONE_ANCHOR_FAILED,
+	EXTERNAL_TOMBSTONE_SUBMISSION_FAILED,
 	MANUAL_DELETE_REASON_REQUIRED,
 	MANUAL_DELETE_REASON_TOO_SHORT,
 	NOT_AUTHORIZED_TO_DELETE,
@@ -104,7 +104,7 @@ export class ArchivedEmailController {
 				if (error.message === DELETION_BLOCKED_BY_RETENTION) {
 					return res.status(409).json({ message: error.message });
 				}
-				if (error.message === EXTERNAL_TOMBSTONE_ANCHOR_FAILED) {
+				if (error.message === EXTERNAL_TOMBSTONE_SUBMISSION_FAILED) {
 					return res.status(503).json({ message: error.message });
 				}
 				return res.status(500).json({ message: error.message });

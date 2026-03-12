@@ -22,7 +22,8 @@ It is not sufficient to reliably detect a complete silent delete where:
 - no tombstone was written,
 - and NMB Archiver no longer knows which key should still exist.
 
-For that case, NMB Archiver needs an independent external inventory of anchored keys.
+For that case, NMB Archiver needs an independent external inventory of keys that were accepted by
+the Audit-Proof backend via `/save`.
 
 ## Goal
 
@@ -31,7 +32,7 @@ machine-readable format, so NMB Archiver can compare:
 
 1. active archived emails in local DB
 2. deleted-email tombstones in local DB
-3. externally anchored keys in Audit-Proof backend
+3. externally known Audit-Proof keys for that instance
 
 This turns the Audit-Proof backend into an external "expected objects" witness.
 
@@ -96,8 +97,8 @@ Typical inventory queries would then look like:
 
 That means a reconciliation job can ask:
 
-- which mail proofs were ever anchored for this instance?
-- which tombstones were ever anchored for this instance?
+- which mail proofs were ever accepted for this instance?
+- which tombstones were ever accepted for this instance?
 
 To make external reconciliation deterministic, keys should be clearly namespaced:
 
@@ -113,7 +114,7 @@ This separation is important because reconciliation needs to distinguish:
 
 Important implementation note:
 
-- the current NMB Archiver implementation still anchors archived emails with the legacy pattern
+- the current NMB Archiver implementation still submits archived emails with the legacy pattern
   `instanceId:archivedEmailId`
 - the tombstone flow already uses an explicit tombstone namespace
 
@@ -127,9 +128,9 @@ The important point is that reconciliation gets one stable namespace for all arc
 ## Tombstone reference requirement
 
 A legitimate delete must not only create a tombstone key. It should also be externally relatable to
-the original mail proof.
+the original submitted mail proof.
 
-That means the tombstone should reference the original anchored mail key, for example:
+That means the tombstone should reference the original mail proof key, for example:
 
 - `subjectKey`: `instance-id:mail:archived-email-id`
 - `tombstoneKey`: `instance-id:tombstone:archived-email-id:tombstone-id`
@@ -174,6 +175,7 @@ Useful optional fields:
 - `namespace`
 - `kind`
 - `subjectKey`
+- `processingState` such as `submitted`, `processing`, or `anchored` if the backend wants to expose its internal async lifecycle
 - `lastVerifiedAt`
 - `backendRecordId`
 - `metadata` if the backend stores safe, non-sensitive classification metadata
@@ -199,7 +201,7 @@ Then it can detect several classes of findings.
 Interpretation:
 
 - ingest proof missing
-- external anchor failed
+- external submission failed
 - data set is locally present but externally incomplete
 
 ### Finding: local tombstone has no external tombstone key
@@ -210,7 +212,7 @@ Interpretation:
 Interpretation:
 
 - delete process was incomplete
-- external tombstone anchor failed
+- external tombstone submission failed
 - deletion proof is not fully externally backed
 
 ### Finding: external mail key exists, but local active object and local tombstone are both missing

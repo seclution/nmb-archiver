@@ -90,15 +90,16 @@ Here is a complete list of environment variables available for configuration:
 
 #### Application Settings
 
-| Variable                | Description                                                                                                                                                  | Default Value           |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------- |
-| `NODE_ENV`              | The application environment.                                                                                                                                 | `development`           |
-| `PORT_BACKEND`          | The port for the backend service.                                                                                                                            | `4000`                  |
-| `PORT_FRONTEND`         | The port for the frontend service.                                                                                                                           | `3000`                  |
-| `APP_URL`               | The public-facing URL of your application. This is used by the backend to configure CORS.                                                                    | `http://localhost:3000` |
-| `ORIGIN`                | Used by the SvelteKit Node adapter to determine the server's public-facing URL. It should always be set to the value of `APP_URL` (e.g., `ORIGIN=$APP_URL`). | `http://localhost:3000` |
-| `SYNC_FREQUENCY`        | The frequency of continuous email syncing. See [cron syntax](https://crontab.guru/) for more details.                                                        | `* * * * *`             |
-| `ALL_INCLUSIVE_ARCHIVE` | Set to `true` to include all emails, including Junk and Trash folders, in the email archive.                                                                 | `false`                 |
+| Variable                           | Description                                                                                                                                                  | Default Value           |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------- |
+| `NODE_ENV`                         | The application environment.                                                                                                                                 | `development`           |
+| `PORT_BACKEND`                     | The port for the backend service.                                                                                                                            | `4000`                  |
+| `PORT_FRONTEND`                    | The port for the frontend service.                                                                                                                           | `3000`                  |
+| `APP_URL`                          | The public-facing URL of your application. This is used by the backend to configure CORS.                                                                    | `http://localhost:3000` |
+| `ORIGIN`                           | Used by the SvelteKit Node adapter to determine the server's public-facing URL. It should always be set to the value of `APP_URL` (e.g., `ORIGIN=$APP_URL`). | `http://localhost:3000` |
+| `SYNC_FREQUENCY`                   | The frequency of continuous email syncing. See [cron syntax](https://crontab.guru/) for more details.                                                        | `* * * * *`             |
+| `AUDIT_PROOF_SUBMISSION_FREQUENCY` | The retry cadence for pending or failed audit-proof `/save` submissions. See [cron syntax](https://crontab.guru/) for more details.                          | `* * * * *`             |
+| `ALL_INCLUSIVE_ARCHIVE`            | Set to `true` to include all emails, including Junk and Trash folders, in the email archive.                                                                 | `false`                 |
 
 #### Docker Compose Service Configuration
 
@@ -125,7 +126,7 @@ These variables are used by `docker-compose.yml` to configure the services.
 | ------------------------------ | ----------------------------------------------------------------------------------------------------------- | ------------------------- |
 | `STORAGE_TYPE`                 | The storage backend to use (`local` or `s3`).                                                               | `local`                   |
 | `BODY_SIZE_LIMIT`              | The maximum request body size for uploads. Can be a number in bytes or a string with a unit (e.g., `100M`). | `100M`                    |
-| `STORAGE_LOCAL_ROOT_PATH`      | The root path for NMB Archiver app data.                                                                   | `/var/data/open-archiver` |
+| `STORAGE_LOCAL_ROOT_PATH`      | The root path for NMB Archiver app data.                                                                    | `/var/data/open-archiver` |
 | `STORAGE_S3_ENDPOINT`          | The endpoint for S3-compatible storage (required if `STORAGE_TYPE` is `s3`).                                |                           |
 | `STORAGE_S3_BUCKET`            | The bucket name for S3-compatible storage (required if `STORAGE_TYPE` is `s3`).                             |                           |
 | `STORAGE_S3_ACCESS_KEY_ID`     | The access key ID for S3-compatible storage (required if `STORAGE_TYPE` is `s3`).                           |                           |

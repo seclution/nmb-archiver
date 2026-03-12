@@ -13,10 +13,12 @@ When an archived email is deleted through the application:
 3. a canonical tombstone manifest is built from the archived email metadata and attachment hashes,
 4. `tombstoneRootHash = SHA256(canonicalTombstoneManifestJson)` is computed,
 5. the tombstone is persisted in `deleted_email_tombstones`,
-6. if Audit-Proof is configured, the tombstone hash is anchored externally via the existing `POST /save` mechanism,
+6. if Audit-Proof is configured, the tombstone hash is submitted via the existing `POST /save` mechanism,
 7. only after that succeeds does NMB Archiver physically remove the archived email from storage and database.
 
-If the external anchor fails while Audit-Proof is configured, physical deletion is aborted.
+The application treats a successful `/save` response as `submitted`. Final asynchronous processing stays inside the Audit-Proof backend.
+
+If the external tombstone submission fails while Audit-Proof is configured, physical deletion is aborted.
 
 ## Manual delete requirements
 
@@ -28,7 +30,7 @@ Manual deletes remain available for privileged users, but they are controlled:
 
 Retention or other system deletes can use the same mechanism with a system-generated reason and an optional governing rule.
 
-## External anchoring
+## External submission
 
 Tombstones currently reuse the same Audit-Proof backend pattern as archived emails:
 
@@ -44,6 +46,8 @@ Tombstones currently reuse the same Audit-Proof backend pattern as archived emai
 
 The key namespace is intentionally separate from normal archived-email verification keys.
 
+From the application perspective, a successful `POST /save` means the tombstone was accepted for asynchronous backend processing. The app does not persist a separate later `verified` or `anchored` state.
+
 ## Tombstone data model
 
 The `deleted_email_tombstones` table stores:
@@ -56,14 +60,14 @@ The `deleted_email_tombstones` table stores:
 - attachment manifest with file hashes
 - canonical tombstone manifest
 - `tombstoneRootHash`
-- external anchor state and response payload
+- external submission state and response payload
 - physical deletion state
 
 This lets auditors distinguish between:
 
-- tombstone created, but external anchor failed
-- tombstone externally anchored, but physical deletion failed
-- tombstone externally anchored and physical deletion completed
+- tombstone created, but external submission failed
+- tombstone submitted, but physical deletion failed
+- tombstone submitted and physical deletion completed
 
 ## Audit interpretation
 
@@ -72,7 +76,7 @@ A successful delete now means:
 1. the system knew exactly which archived object was being deleted,
 2. the object's hash evidence was frozen into the tombstone,
 3. the tombstone was locally persisted,
-4. the tombstone was externally anchored if Audit-Proof was configured,
+4. the tombstone was externally submitted if Audit-Proof was configured,
 5. only then was the object physically removed.
 
 This does not protect against out-of-band manual deletion directly in database or object storage. For that, infrastructure controls and reconciliation jobs are still required.
