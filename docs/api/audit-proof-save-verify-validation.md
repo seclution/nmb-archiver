@@ -1,177 +1,305 @@
 # Audit-Proof Integration: Save/Verify Validierungs-Matrix
 
-Diese Datei listet die **kernrelevanten Code-Stellen** für die Beweiskette (Ingest/Save/Verify) auf,
-inklusive Payload-Form, Hash/Timestamp-Herkunft und den Stellen, an denen Daten ans Audit-Proof-Backend gesendet werden.
+Diese Datei beschreibt die revisionssichere Beweiskette von NMB Archiver zwischen
+lokaler Archivierung, kanonischer Hash-Bildung und externer Audit-Proof-Verankerung.
+Sie ist als technische Referenz fuer Entwicklung, Audit, Forensik und Compliance gedacht.
 
-## 1) Save-Flow (Ingestion -> `/save`)
+## 1. Ziel und Aussage der Beweiskette
 
-### 1.1 E-Mail SHA-256 wird beim Ingest gebildet
+Die Kette soll fuer eine archivierte E-Mail nachweisbar machen:
+
+1. welche Bytes beim Ingest archiviert wurden,
+2. welcher deterministische Root-Hash daraus entstanden ist,
+3. welcher Root-Hash extern im Audit-Proof-Backend verankert wurde,
+4. ob spaeter bei einer Verifikation dieselben Bytes und dieselbe Root-Hash-Kette erneut belegt werden koennen.
+
+Die zentrale Aussage lautet damit nicht nur "Datei vorhanden", sondern:
+
+- die gespeicherte `.eml` ist unveraendert,
+- die gespeicherten Attachments sind unveraendert,
+- das daraus abgeleitete kanonische Manifest ist unveraendert,
+- der gespeicherte `verificationRootHash` in der Datenbank ist unveraendert,
+- der externe Audit-Proof-Nachweis passt weiterhin zu genau diesem Root-Hash.
+
+## 2. Architekturueberblick
+
+```text
+Raw mail + attachments
+        |
+        v
+SHA256 ueber .eml und alle Attachments
+        |
+        v
+Kanonisches Manifest (deterministische Reihenfolge)
+        |
+        v
+verificationRootHash = SHA256(JSON(manifest))
+        |
+        +--> Speicherung in archived_emails.verification_root_hash
+        |
+        +--> POST /save an Audit-Proof-Backend
+
+Spaetere Verifikation:
+Storage-Bytes neu lesen -> neu hashen -> Manifest neu bilden -> Root neu berechnen
+        |
+        +--> Vergleich gegen DB-Referenzen
+        |
+        +--> Vergleich gegen gespeicherten verification_root_hash
+        |
+        +--> POST /verify an Audit-Proof-Backend
+```
+
+## 3. Save-Flow (Ingestion -> `/save`)
+
+### 3.1 SHA-256 der E-Mail wird beim Ingest gebildet
+
 - Datei: `packages/backend/src/services/IngestionService.ts`
 - Relevanz:
   - `emlBuffer` wird aus der Rohmail gebildet.
-  - `emailHash` wird als `sha256(emlBuffer)` berechnet.
-  - Dieser Hash wird als `storageHashSha256` in `archived_emails` gespeichert.
+  - `emailHash = sha256(emlBuffer)`.
+  - Dieser Wert wird als `storageHashSha256` in `archived_emails` gespeichert.
 
-### 1.2 Attachment SHA-256 wird beim Ingest gebildet
+### 3.2 SHA-256 der Attachments wird beim Ingest gebildet
+
 - Datei: `packages/backend/src/services/IngestionService.ts`
 - Relevanz:
-  - Für jedes Attachment wird `attachmentHash = sha256(attachmentBuffer)` berechnet.
-  - Dieser Hash wird als `contentHashSha256` in `attachments` gespeichert.
+  - Fuer jedes Attachment wird `attachmentHash = sha256(attachmentBuffer)` berechnet.
+  - Dieser Wert wird als `contentHashSha256` in `attachments` gespeichert.
 
-### 1.3 Kanonisches Manifest + Root-Hash
+### 3.3 Kanonisches Manifest und Root-Hash
+
 - Datei: `packages/backend/src/helpers/verificationManifest.ts`
 - Relevanz:
   - `buildVerificationManifest()` sortiert Attachments stabil nach:
     1. `filename`
     2. `sizeBytes`
     3. `contentHashSha256`
-  - `computeVerificationRootHash()` bildet `sha256(JSON.stringify({ emailHashSha256, attachments }))`.
-  - Die Reihenfolge ist deterministisch, damit Save und Verify identisch rechnen.
+  - `computeVerificationRootHash()` bildet:
+    `sha256(JSON.stringify({ emailHashSha256, attachments }))`
+  - Die Reihenfolge ist deterministisch. Save und Verify rechnen damit ueber dieselbe logische Struktur.
 
-### 1.4 Root-Hash in DB + Push ans Audit-Proof-Backend
+### 3.4 Speicherung in der DB und externer Push
+
 - Datei: `packages/backend/src/services/IngestionService.ts`
 - Relevanz:
   - `verificationRootHash` wird in `archived_emails.verification_root_hash` gespeichert.
-  - Danach Aufruf von `AuditProofService.saveEmailHash(systemSettings, archivedEmail.id, verificationRootHash)`.
-  - Bei Fehlern im externen Push wird nur gewarnt (Ingestion läuft weiter).
+  - Danach folgt `AuditProofService.saveEmailHash(systemSettings, archivedEmail.id, verificationRootHash)`.
+  - Fehler beim externen Push blockieren den Ingest aktuell nicht; sie werden geloggt.
 
-### 1.5 Exakte `/save` Request-Form
+### 3.5 Exakte `/save`-Payload
+
 - Datei: `packages/backend/src/services/AuditProofService.ts`
-- Relevanz:
-  - `saveEmailHash()` baut den Key als `${instanceId}:${archivedEmailId}`.
-  - Gesendet wird `POST {baseUrl}/save` mit JSON:
-    - `key: string`
-    - `value: string` (hier: `verificationRootHash`)
-  - Content-Type: `application/json`.
+- Key-Form:
+  - `${instanceId}:${archivedEmailId}`
+- Request:
 
-## 2) Verify-Flow (Rehash -> Manifest -> `/verify`)
+```json
+{
+  "key": "instance-id:archived-email-id",
+  "value": "verification-root-hash"
+}
+```
 
-### 2.1 Verify wird mit `includeAuditProof: true` erzwungen
+- Transport:
+  - `POST {baseUrl}/save`
+  - `Content-Type: application/json`
+
+## 4. Verify-Flow (Rehash -> Manifest -> `/verify`)
+
+### 4.1 Verify wird aktiv mit Audit-Proof ausgefuehrt
+
 - Dateien:
   - `packages/backend/src/services/IntegrityService.ts`
   - `packages/backend/src/services/ArchivedEmailService.ts`
 - Relevanz:
   - Integrity-Endpoint ruft `verifyEmail(..., { includeAuditProof: true })` auf.
-  - Detailansicht ruft ebenfalls Verify inkl. Audit-Proof.
+  - Die Detailansicht kann dieselbe Verifikation ebenfalls inklusive Audit-Proof ausloesen.
 
-### 2.2 E-Mail wird neu gehasht (nicht nur DB-Wert benutzt)
+### 4.2 E-Mail wird neu gehasht
+
 - Datei: `packages/backend/src/services/EmailVerificationService.ts`
 - Relevanz:
-  - Mail wird aus Storage gelesen.
-  - `hashSha256 = sha256(raw)` wird **neu** berechnet.
-  - Vergleich gegen `email.storageHashSha256` für lokalen Integritätsnachweis.
+  - Die Mail wird erneut aus dem Storage geladen.
+  - `hashSha256 = sha256(raw)` wird frisch berechnet.
+  - Der Wert wird mit `email.storageHashSha256` verglichen.
 
-### 2.3 Attachments werden neu gehasht
+### 4.3 Attachments werden neu gehasht
+
 - Datei: `packages/backend/src/services/EmailVerificationService.ts`
 - Relevanz:
-  - Jedes Attachment wird aus Storage geladen und neu gehasht.
+  - Jedes Attachment wird aus dem Storage geladen und neu gehasht.
   - Vergleich gegen `attachments.contentHashSha256`.
-  - Für das Verify-Manifest wird der **aktuelle** Hash verwendet.
+  - Fuer das neue Verify-Manifest werden die aktuellen Rehash-Werte genutzt.
 
-### 2.4 Root-Hash wird auf Verify-Seite neu berechnet
+### 4.4 Root-Hash wird neu berechnet
+
 - Dateien:
   - `packages/backend/src/services/EmailVerificationService.ts`
   - `packages/backend/src/helpers/verificationManifest.ts`
 - Relevanz:
   - `manifest = buildVerificationManifest(hashSha256, attachmentManifestEntries)`
   - `verificationRootHash = computeVerificationRootHash(manifest)`
-  - Somit wird extern immer der aus **aktuellen Storage-Bytes** abgeleitete Root-Hash verifiziert.
+  - Extern verifiziert wird damit immer der aus den aktuellen Storage-Bytes abgeleitete Root-Hash.
 
-### 2.5 Gespeicherter DB-Root-Hash wird gegen den Rehash geprüft
+### 4.5 Gespeicherter DB-Root-Hash wird gegengeprueft
+
 - Datei: `packages/backend/src/services/EmailVerificationService.ts`
 - Relevanz:
-  - Wenn `archived_emails.verification_root_hash` gesetzt ist, wird dieser Wert
-    gegen den frisch aus Manifest + Storage-Bytes berechneten `verificationRootHash`
-    verglichen.
-  - Ein Mismatch erzeugt einen lokalen Integrity-Fehler vom Typ `verification_root`.
-  - Damit werden nicht nur manipulierte Dateiinhalte erkannt, sondern auch Änderungen
-    an der in der DB abgelegten Referenz der Beweiskette.
+  - Wenn `archived_emails.verification_root_hash` gesetzt ist, wird dieser Wert gegen den frisch berechneten `verificationRootHash` verglichen.
+  - Ein Mismatch erzeugt einen lokalen Integrity-Befund vom Typ `verification_root`.
+  - Dadurch werden auch Manipulationen an der DB-Referenz der Beweiskette sichtbar, selbst wenn die Storage-Dateien unveraendert waeren.
 
-### 2.6 Timestamp-Herkunft für `/verify`
+### 4.6 Timestamp-Herkunft fuer `/verify`
+
 - Datei: `packages/backend/src/services/EmailVerificationService.ts`
 - Relevanz:
-  - Timestamp wird als
-    - `Math.floor(new Date(email.archivedAt).getTime() / 1000)`
-    - also Unix-Sekunden aus `archived_emails.archived_at`
-    gesendet.
+  - Der Timestamp wird aus `archived_emails.archived_at` abgeleitet:
+    `Math.floor(new Date(email.archivedAt).getTime() / 1000)`
+  - Damit wird in Unix-Sekunden der Archivierungszeitpunkt als Teil des Verify-Calls uebergeben.
 
-### 2.7 Exakte `/verify` Request-Form
+### 4.7 Exakte `/verify`-Payload
+
 - Datei: `packages/backend/src/services/AuditProofService.ts`
-- Relevanz:
-  - `verifyEmailHash()` sendet `POST {baseUrl}/verify` mit JSON:
-    - `key: string` (`${instanceId}:${archivedEmailId}`)
-    - `value: string` (`verificationRootHash` aus Rehash+Manifest)
-    - `timestamp: number` (Unix-Sekunden aus `archivedAt`)
+- Request:
 
-## 3) Konfigurationsstellen, die Save/Verify aktivieren
+```json
+{
+  "key": "instance-id:archived-email-id",
+  "value": "verification-root-hash",
+  "timestamp": 1735137000
+}
+```
 
-### 3.1 System-Settings (Instanz-ID, Backend-URL, Debug)
+- Transport:
+  - `POST {baseUrl}/verify`
+  - `Content-Type: application/json`
+
+## 5. Was genau als integer gilt
+
+Die Audit-Aussage ist nur dann belastbar, wenn alle folgenden Ebenen zusammenpassen:
+
+1. `storageHashSha256` der E-Mail passt zu den aktuellen `.eml`-Bytes.
+2. `contentHashSha256` aller Attachments passt zu den aktuellen Attachment-Bytes.
+3. Das aus diesen Werten gebildete kanonische Manifest ergibt denselben `verificationRootHash`.
+4. Der in der DB gespeicherte `verification_root_hash` passt zu diesem frisch berechneten Wert.
+5. Das Audit-Proof-Backend bestaetigt denselben Wert ueber `/verify`.
+
+Erst die Kombination aus lokaler Rehash-Pruefung und externer Root-Hash-Verifikation ist aus Auditor-Sicht der belastbare Nachweis gegen nachtraegliche Manipulation.
+
+## 6. Konfigurationsstellen
+
+### 6.1 System-Settings
+
 - Dateien:
   - `packages/types/src/system.types.ts`
   - `packages/backend/src/services/SettingsService.ts`
-- Relevanz:
+- Relevante Felder:
   - `auditProofInstanceId`
   - `auditProofInstanceServerAddr`
   - `auditProofDebugRequests`
 
-### 3.2 Aktivierungslogik
+### 6.2 Aktivierungslogik
+
 - Datei: `packages/backend/src/services/AuditProofService.ts`
 - Relevanz:
-  - Integration ist aktiv nur wenn **URL und Instance-ID** vorhanden sind.
-  - URL-Fallback optional über `AUDIT_PROOF_BACKEND_URL`.
+  - Die Integration ist nur aktiv, wenn URL und `instanceId` vorhanden sind.
+  - Optionaler URL-Fallback ueber `AUDIT_PROOF_BACKEND_URL`.
 
-## 4) Wo du Payloads/Ergebnisse eindeutig prüfen kannst
+## 7. Debugging und Nachvollziehbarkeit
 
-### 4.1 Debug-Logs für Request/Response aktivieren
+### 7.1 Debug-Logs fuer Request und Response
+
 - Datei: `packages/backend/src/services/AuditProofService.ts`
 - Relevanz:
   - Bei `auditProofDebugRequests=true` werden geloggt:
-    - endpoint (`/save` oder `/verify`)
-    - vollständiges `payload`
-    - target URL
-    - response body + status
+    - Endpoint (`/save` oder `/verify`)
+    - Ziel-URL
+    - Payload
+    - Response-Status
+    - Response-Body
 
-### 4.2 API-Einstiegspunkt für Verify
+### 7.2 API-Einstiegspunkt fuer Verifikation
+
 - Dateien:
   - `packages/backend/src/api/routes/integrity.routes.ts`
   - `packages/backend/src/api/controllers/integrity.controller.ts`
 - Relevanz:
-  - `GET /v1/integrity/:id` löst vollständige Integritätsprüfung inkl. Audit-Proof aus.
+  - `GET /v1/integrity/:id` fuehrt die vollstaendige Integritaetspruefung inklusive Audit-Proof aus.
 
-## 5) DB-Felder der Beweiskette
+## 8. Relevante DB-Felder der Beweiskette
 
-### 5.1 E-Mail
+### 8.1 E-Mail
+
 - Datei: `packages/backend/src/database/schema/archived-emails.ts`
 - Felder:
-  - `storage_hash_sha256` (Referenzhash der E-Mail)
-  - `verification_root_hash` (beim Save berechneter Root-Hash)
-  - `archived_at` (Basis für Verify-Timestamp)
+  - `storage_hash_sha256`
+  - `verification_root_hash`
+  - `archived_at`
 
-### 5.2 Attachments
+### 8.2 Attachments
+
 - Datei: `packages/backend/src/database/schema/attachments.ts`
-- Feld:
-  - `content_hash_sha256` (Referenzhash pro Attachment)
+- Felder:
+  - `content_hash_sha256`
 
-## 6) Kurzfazit für deine Audit-Validierung
+## 9. Auditor-Checkliste
 
-Für die Beweiskette sind die zentralen Garantien:
-1. Save sendet **nicht** den Rohmail-Hash, sondern den deterministisch abgeleiteten `verificationRootHash` an `/save`.
-2. Verify berechnet den Root-Hash aus **neu gehashten** Storage-Dateien (Mail + Attachments) erneut.
-3. Verify prüft zusätzlich den in der DB gespeicherten `verification_root_hash` gegen den frisch berechneten Manifest-Hash.
-4. Verify sendet `key + value(rootHash) + timestamp(archivedAt in Unix-Sekunden)` an `/verify`.
-5. Durch deterministisches Sorting im Manifest ist die Root-Hash-Bildung zwischen Save und Verify konsistent.
+Fuer eine belastbare Stichprobe oder einen formalen Audit-Check sollten mindestens diese Punkte nachvollzogen werden:
 
-## 7) Löschungen und Audit-Spur
+1. Ist fuer die Instanz eine eindeutige `auditProofInstanceId` gesetzt?
+2. Ist das Audit-Proof-Backend konfiguriert und erreichbar?
+3. Laesst sich fuer eine Stichprobe `GET /v1/integrity/:id` erfolgreich ausfuehren?
+4. Sind `localIntegrity` und `externalProof` jeweils gueltig?
+5. Enthalten die Befunde keine `email`, `attachment` oder `verification_root`-Fehler?
+6. Wurde fuer denselben Datensatz ein plausibler `archived_at`-Zeitpunkt an `/verify` uebergeben?
+7. Sind bei Bedarf die Debug-Logs vorhanden, um Payload und Response forensisch nachzuvollziehen?
 
-Die aktuelle Audit-Proof-Integration deckt extern nur `save` und `verify` ab. Für Löschungen gibt es derzeit keinen separaten `/delete`- oder Tombstone-Call an das Audit-Proof-Backend.
+## 10. Grenzen der aktuellen Loesung
 
-Trotzdem werden Löschungen nicht spurlos:
-- Vor der physischen Löschung schreibt NMB Archiver einen Audit-Log-Eintrag.
-- Dieser Eintrag enthält belastbare Evidenz zum Objekt:
+Die aktuelle Implementierung deckt Save und Verify fuer die unveraenderte Existenz eines Archivobjekts gut ab, aber nicht jede denkbare Compliance-Anforderung:
+
+- Wenn der externe `/save`-Call fehlschlaegt, wird der Ingest aktuell nicht hart abgebrochen.
+- Die externe Beweiskette verankert aktuell keinen eigenen Delete- oder Tombstone-Eintrag.
+- Die Aussage ist objektbezogen. Prozesskontrollen wie Vier-Augen-Freigaben oder Retention-Governance liegen ausserhalb dieser Datei.
+
+Diese Grenzen sollten in einer formalen Verfahrensdokumentation explizit benannt werden.
+
+## 11. Loeschungen und Audit-Spur
+
+Die aktuelle Audit-Proof-Integration deckt extern nur `save` und `verify` ab. Fuer Loeschungen gibt es derzeit keinen separaten `/delete`- oder Tombstone-Call an das Audit-Proof-Backend.
+
+Trotzdem werden Loeschungen nicht spurlos:
+
+- Vor der physischen Loeschung schreibt NMB Archiver einen Audit-Log-Eintrag.
+- Dieser Eintrag enthaelt belastbare Evidenz zum geloeschten Objekt:
   - `messageIdHeader`
   - `storageHashSha256`
   - `verificationRootHash`
   - Attachment-Hashes und Metadaten
-- Die Audit-Logs selbst sind hash-verkettet und lokal auf Integrität prüfbar.
+- Die Audit-Logs selbst sind hash-verkettet und lokal auf Integritaet pruefbar.
 
-Für eine voll externe, revisionssichere Löschspur fehlt als nächster Ausbauschritt noch ein unveränderlicher Tombstone, der ebenfalls an das Audit-Proof-Backend verankert wird.
+Damit ist heute bereits sichtbar, dass ein Objekt existiert hat und geloescht wurde. Was fuer eine voll externe, revisionssichere Loeschspur noch fehlt, ist ein unveraenderlicher Tombstone, der selbst wieder ans Audit-Proof-Backend verankert wird.
+
+## 12. Empfohlener naechster Ausbau fuer Tombstones
+
+Fuer eine auditorisch starke Delete-Beweiskette ist der naechste sinnvolle Ausbau:
+
+1. Vor jeder physischen Loeschung einen unveraenderlichen Tombstone erzeugen.
+2. Darin mindestens `emailId`, `instanceId`, `deletedAt`, `deletedBy`, `reason`,
+   `storageHashSha256`, `verificationRootHash` und das Attachment-Manifest sichern.
+3. Ueber einen separaten Endpunkt oder denselben Audit-Proof-Mechanismus den Tombstone extern verankern.
+4. In der UI und API geloeschte Objekte als nachvollziehbare Audit-Ereignisse ausweisen.
+
+Erst damit wird nicht nur "unveraendert vorhanden", sondern auch "nachweisbar entfernt" revisionssicher und fuer Auditoren ohne Luecke belegbar.
+
+## 13. Kurzfazit
+
+Die aktuelle Save/Verify-Kette von NMB Archiver ist fuer den Objektbestand bereits belastbar:
+
+1. Save verankert den deterministisch gebildeten `verificationRootHash`, nicht nur den Rohmail-Hash.
+2. Verify rehasht E-Mail und Attachments aus dem aktuellen Storage erneut.
+3. Verify prueft zusaetzlich den in der DB gespeicherten `verification_root_hash`.
+4. Verify sendet `key + value(rootHash) + timestamp(archivedAt)` an `/verify`.
+5. Loeschungen hinterlassen bereits heute eine lokale, hash-verkettete Audit-Spur.
+
+Fuer eine vollstaendige externe Delete-Beweiskette fehlt als letzter grosser Baustein noch ein externer Tombstone-Mechanismus.
