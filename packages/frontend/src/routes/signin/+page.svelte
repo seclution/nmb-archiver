@@ -64,7 +64,7 @@
 			target="_blank"
 			class="flex flex-row items-center gap-2 font-bold"
 		>
-			<img src="/logos/logo-sq.svg" alt="OpenArchiver Logo" class="h-16 w-16" />
+			<img src="/logos/logo-sq.svg" alt="NMB Archiver Logo" class="h-16 w-16" />
 			<span class="text-2xl">Open Archiver</span>
 		</a>
 	</div>

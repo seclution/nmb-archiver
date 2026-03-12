@@ -37,7 +37,7 @@
 <div class="space-y-6">
 	<h1 class="text-2xl font-bold">{$t('app.license_page.title')}</h1>
 
-	{#if data.licenseStatus.remoteStatus === 'INVALID'}
+	{#if data.licenseStatus.remoteStatus === 'REVOKED'}
 		<Card class="border-destructive">
 			<CardHeader>
 				<div class="flex items-center gap-3">
@@ -112,7 +112,7 @@
 						>
 					{:else if data.licenseStatus.isExpired}
 						<Badge variant="destructive">{$t('app.license_page.expired')}</Badge>
-					{:else if data.licenseStatus.remoteStatus === 'INVALID'}
+					{:else if data.licenseStatus.remoteStatus === 'REVOKED'}
 						<Badge variant="destructive">{$t('app.license_page.revoked')}</Badge>
 					{:else}
 						<Badge variant="secondary">{$t('app.license_page.unknown')}</Badge>

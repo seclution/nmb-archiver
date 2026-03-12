@@ -40,7 +40,7 @@ export const load: LayoutServerLoad = async (event) => {
 	const now = new Date();
 	if (!lastChecked || now.getTime() - lastChecked.getTime() > 1000 * 60 * 60) {
 		try {
-			const res = await fetch('https://api.github.com/repos/seclution/OpenArchiver/releases/latest');
+			const res = await fetch('https://api.github.com/repos/seclution/nmb-archiver/releases/latest');
 			if (res.ok) {
 				const latestRelease = await res.json();
 				const latestVersion = latestRelease.tag_name.replace('v', '');

@@ -80,7 +80,7 @@
 </script>
 
 <svelte:head>
-	<title>{email?.subject} | {$t('app.archive.title')} - OpenArchiver</title>
+	<title>{email?.subject} | {$t('app.archive.title')} - NMB Archiver</title>
 </svelte:head>
 
 {#if email}
@@ -220,7 +220,7 @@
 								<span class="mt-1">
 									{$t('app.archive.integrity_report_description')}
 									<a
-										href="https://github.com/seclution/OpenArchiver/blob/main/docs/user-guides/integrity-check.md"
+										href="https://github.com/seclution/nmb-archiver/blob/main/docs/user-guides/integrity-check.md"
 										target="_blank"
 										class="text-primary underline underline-offset-2"
 										>{$t('app.common.read_docs')}</a
