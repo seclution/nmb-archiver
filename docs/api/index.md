@@ -16,3 +16,4 @@ Before making requests to protected endpoints, you must authenticate with the AP
 - [**Ingestion Service**](./ingestion.md): Manages email ingestion sources.
 - [**Search Service**](./search.md): Handles email search functionality.
 - [**Storage Service**](./storage.md): Manages file storage and downloads.
+- [**Deletion Tombstones**](./deletion-tombstones.md): Documents controlled deletes and external tombstone anchoring.

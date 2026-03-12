@@ -82,6 +82,7 @@ export default defineConfig({
 					{ text: 'Dashboard', link: '/api/dashboard' },
 					{ text: 'Ingestion', link: '/api/ingestion' },
 					{ text: 'Integrity Check', link: '/api/integrity' },
+					{ text: 'Deletion Tombstones', link: '/api/deletion-tombstones' },
 					{ text: 'Search', link: '/api/search' },
 					{ text: 'Storage', link: '/api/storage' },
 					{ text: 'Jobs', link: '/api/jobs' },
