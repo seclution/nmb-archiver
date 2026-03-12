@@ -15,17 +15,21 @@
 	import * as Alert from '$lib/components/ui/alert';
 	import { Badge } from '$lib/components/ui/badge';
 	import * as HoverCard from '$lib/components/ui/hover-card';
+	import { Textarea } from '$lib/components/ui/textarea';
 
 	let { data }: { data: PageData } = $props();
 	let email = $derived(data.email);
 	let integrityReport = $derived(data.integrityReport);
 	let isDeleteDialogOpen = $state(false);
 	let isDeleting = $state(false);
+	let deleteReason = $state('');
 	let auditProofVerification = $derived(email?.auditProofVerification);
 	let auditProofPassed = $derived(auditProofVerification?.res === 'PASSED');
 	const auditProofPendingStates = ['NOT_FOUND', 'TOO_EARLY'];
 	let auditProofIsPending = $derived(
-		auditProofVerification ? auditProofPendingStates.includes(auditProofVerification.res) : false
+		auditProofVerification
+			? auditProofPendingStates.includes(auditProofVerification.res)
+			: false
 	);
 	let archivalUnixTimestamp = $derived(
 		email?.archivedAt ? Math.floor(new Date(email.archivedAt).getTime() / 1000) : null
@@ -62,6 +66,9 @@
 			isDeleting = true;
 			const response = await api(`/archived-emails/${email.id}`, {
 				method: 'DELETE',
+				body: JSON.stringify({
+					reason: deleteReason,
+				}),
 			});
 			if (!response.ok) {
 				const errorData = await response.json().catch(() => null);
@@ -76,6 +83,7 @@
 				});
 				return;
 			}
+			deleteReason = '';
 			await goto('/dashboard/archived-emails', { invalidateAll: true });
 		} catch (error) {
 			console.error('Delete failed:', error);
@@ -94,7 +102,11 @@
 	<div class="space-y-4">
 		{#if auditProofVerification}
 			<Alert.Root
-				variant={auditProofPassed ? 'default' : auditProofIsPending ? 'default' : 'destructive'}
+				variant={auditProofPassed
+					? 'default'
+					: auditProofIsPending
+						? 'default'
+						: 'destructive'}
 				class={auditProofPassed
 					? 'border-green-500 bg-green-50 text-green-900'
 					: auditProofIsPending
@@ -330,12 +342,25 @@
 					{$t('app.archive.delete_confirmation_description')}
 				</Dialog.Description>
 			</Dialog.Header>
+			<div class="space-y-2">
+				<label class="text-sm font-medium" for="delete-reason"> Delete reason </label>
+				<Textarea
+					id="delete-reason"
+					bind:value={deleteReason}
+					rows={4}
+					placeholder="Document the business or compliance reason for this deletion."
+				/>
+				<p class="text-muted-foreground text-sm">
+					Manual deletes require a justification and create a tombstone audit record
+					before the archived object is physically removed.
+				</p>
+			</div>
 			<Dialog.Footer class="sm:justify-start">
 				<Button
 					type="button"
 					variant="destructive"
 					onclick={confirmDelete}
-					disabled={isDeleting}
+					disabled={isDeleting || deleteReason.trim().length < 10}
 				>
 					{#if isDeleting}
 						{$t('app.archive.deleting')}...

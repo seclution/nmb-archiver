@@ -88,6 +88,48 @@ Retrieves a single archived email by its ID, including its raw content and attac
 - **404 Not Found:** The archived email with the specified ID was not found.
 - **500 Internal Server Error:** An unexpected error occurred.
 
+### DELETE /api/v1/archived-emails/:id
+
+Deletes a single archived email through the controlled delete path.
+
+**Access:** Authenticated and authorized for archive deletion
+
+#### URL Parameters
+
+| Parameter | Type   | Description                             |
+| :-------- | :----- | :-------------------------------------- |
+| `id`      | string | The ID of the archived email to delete. |
+
+#### Request Body
+
+```json
+{
+	"reason": "Customer requested deletion after documented legal review."
+}
+```
+
+Manual deletes require a non-empty human-readable reason with at least 10 characters.
+
+Before the archived object is physically removed, NMB Archiver:
+
+1. validates permissions and retention constraints,
+2. creates a canonical tombstone manifest,
+3. computes `tombstoneRootHash`,
+4. persists the tombstone locally,
+5. anchors the tombstone externally when Audit-Proof is configured.
+
+If external anchoring fails while Audit-Proof is configured, deletion is aborted.
+
+#### Responses
+
+- **204 No Content:** The archived email was deleted successfully.
+- **400 Bad Request:** The delete reason is missing or too short.
+- **403 Forbidden:** The actor is not allowed to delete this archived email.
+- **404 Not Found:** The archived email was not found.
+- **409 Conflict:** Deletion is blocked by retention or legal hold enforcement.
+- **503 Service Unavailable:** The external tombstone anchor failed.
+- **500 Internal Server Error:** An unexpected error occurred.
+
 ## Service Methods
 
 ### `getArchivedEmails(ingestionSourceId: string, page: number, limit: number): Promise<PaginatedArchivedEmails>`

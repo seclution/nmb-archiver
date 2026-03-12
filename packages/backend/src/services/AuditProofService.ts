@@ -13,6 +13,11 @@ interface AuditProofResponse {
 	log?: Record<string, { res: string; msg: string }>;
 }
 
+export interface AuditProofStoreResult extends AuditProofResponse {
+	httpStatus: number;
+	error?: string;
+}
+
 export class AuditProofService {
 	private buildKey(instanceId: string, archivedEmailId: string): string {
 		return `${instanceId}:${archivedEmailId}`;
@@ -37,22 +42,43 @@ export class AuditProofService {
 		return Boolean(this.getBaseUrl(settings) && this.getInstanceId(settings));
 	}
 
-	public async saveEmailHash(
-		settings: SystemSettings,
-		archivedEmailId: string,
-		hash: string
-	): Promise<void> {
-		if (!this.isEnabled(settings)) {
-			return;
-		}
-
-		const key = this.buildKey(this.getInstanceId(settings) as string, archivedEmailId);
-		await this.post(settings, '/save', { key, value: hash });
+	public isConfigured(settings: SystemSettings): boolean {
+		return this.isEnabled(settings);
 	}
 
-	public async verifyEmailHash(
+	public getConfiguredInstanceId(settings: SystemSettings): string | null {
+		return this.getInstanceId(settings);
+	}
+
+	public buildTombstoneKey(
 		settings: SystemSettings,
-		archivedEmailId: string,
+		tombstoneId: string,
+		archivedEmailId: string
+	): string {
+		const instanceId = this.getConfiguredInstanceId(settings) ?? 'local';
+		return `${instanceId}:tombstone:${archivedEmailId}:${tombstoneId}`;
+	}
+
+	public async saveHashForKey(
+		settings: SystemSettings,
+		key: string,
+		hash: string
+	): Promise<AuditProofStoreResult | null> {
+		if (!this.isEnabled(settings)) {
+			return null;
+		}
+
+		const { status, body } = await this.post(settings, '/save', { key, value: hash });
+
+		return {
+			...body,
+			httpStatus: status,
+		};
+	}
+
+	public async verifyHashForKey(
+		settings: SystemSettings,
+		key: string,
 		hash: string,
 		timestamp: number
 	): Promise<AuditProofVerificationResult | null> {
@@ -60,7 +86,6 @@ export class AuditProofService {
 			return null;
 		}
 
-		const key = this.buildKey(this.getInstanceId(settings) as string, archivedEmailId);
 		const { status, body } = await this.post(settings, '/verify', {
 			key,
 			value: hash,
@@ -71,6 +96,52 @@ export class AuditProofService {
 			...body,
 			httpStatus: status,
 		};
+	}
+
+	public async saveEmailHash(
+		settings: SystemSettings,
+		archivedEmailId: string,
+		hash: string
+	): Promise<AuditProofStoreResult | null> {
+		const instanceId = this.getInstanceId(settings);
+		if (!instanceId) {
+			return null;
+		}
+
+		const key = this.buildKey(instanceId, archivedEmailId);
+		return this.saveHashForKey(settings, key, hash);
+	}
+
+	public async saveTombstoneHash(
+		settings: SystemSettings,
+		tombstoneKey: string,
+		hash: string
+	): Promise<AuditProofStoreResult | null> {
+		return this.saveHashForKey(settings, tombstoneKey, hash);
+	}
+
+	public async verifyEmailHash(
+		settings: SystemSettings,
+		archivedEmailId: string,
+		hash: string,
+		timestamp: number
+	): Promise<AuditProofVerificationResult | null> {
+		const instanceId = this.getInstanceId(settings);
+		if (!instanceId) {
+			return null;
+		}
+
+		const key = this.buildKey(instanceId, archivedEmailId);
+		return this.verifyHashForKey(settings, key, hash, timestamp);
+	}
+
+	public async verifyTombstoneHash(
+		settings: SystemSettings,
+		tombstoneKey: string,
+		hash: string,
+		timestamp: number
+	): Promise<AuditProofVerificationResult | null> {
+		return this.verifyHashForKey(settings, tombstoneKey, hash, timestamp);
 	}
 
 	private async post(

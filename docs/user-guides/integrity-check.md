@@ -67,17 +67,32 @@ To balance performance and auditability, use two modes:
 
 For revisionssicherheit / non-manipulation claims, only the second mode is sufficient.
 
-## What deletion currently proves
+## What deletion now proves
 
-The current audit-proof integration proves save and verify against the external backend. Deletion
-is handled differently at the moment:
+Deletion is no longer just a local audit-log event.
 
-- Before an archived email is physically deleted, NMB Archiver writes a deletion event to the
-  local audit log.
-- That event includes the archived email's `verificationRootHash`, `storageHashSha256`, and the
-  attachment hashes known at deletion time.
-- The audit log itself is hash-chained, so the delete event becomes locally tamper-evident.
+Before an archived email is physically removed, NMB Archiver now:
 
-This means deletions are visible to an auditor in the internal audit chain. What is still missing
-for a fully externalized deletion proof is a dedicated immutable tombstone that is anchored to the
-audit-proof backend as well.
+1. requires a reason for manual deletes,
+2. builds a canonical tombstone manifest from the archived email metadata and attachment hashes,
+3. computes `tombstoneRootHash`,
+4. stores that tombstone locally in `deleted_email_tombstones`,
+5. anchors the tombstone externally through the existing audit-proof `POST /save` mechanism when Audit-Proof is configured,
+6. only then performs the physical deletion.
+
+This means a controlled delete can now prove:
+
+- which archived object was deleted,
+- which hash evidence existed at delete time,
+- who initiated the delete,
+- why the delete happened,
+- whether the external tombstone anchor succeeded,
+- whether the physical deletion completed.
+
+If the external anchor fails while Audit-Proof is configured, the delete is aborted.
+
+## Remaining boundary
+
+This still does not protect against an operator deleting data directly in database or object
+storage outside the application. For that, you still need infrastructure controls and periodic
+reconciliation jobs.

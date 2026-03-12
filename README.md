@@ -29,6 +29,7 @@ Der Fokus dieses Forks liegt auf dem produktiven Einsatz für unsere Kundenumgeb
 - **Suche und eDiscovery**: Volltextsuche über E-Mails und Attachments
 - **Integritätsprüfung**: lokale Rehash-Prüfung für Mail und Attachments
 - **Audit-Proof-Verifikation**: externer Nachweis über `verificationRootHash`
+- **Delete Tombstones**: kontrollierte Löschungen mit Begründung, Tombstone-Manifest und externer Verankerung
 - **Audit-Log**: nachvollziehbare System- und Löschereignisse mit Hash-Evidenz
 
 ## Revisionssichere Kette
@@ -40,8 +41,9 @@ NMB Archiver erweitert den Upstream um eine dokumentierte Prüfkette:
 3. Aus dem Manifest wird ein deterministischer `verificationRootHash` abgeleitet.
 4. Dieser Root-Hash wird lokal gespeichert und an das externe Audit-Proof-Backend übertragen.
 5. Beim Verify werden die Storage-Bytes erneut gehasht, das Manifest neu aufgebaut und sowohl gegen die lokale DB als auch gegen das externe Backend geprüft.
+6. Vor jeder kontrollierten Löschung wird ein Tombstone mit eigener Hash-Evidenz erzeugt und bei konfigurierter Audit-Proof-Integration extern verankert.
 
-Die zugehörige technische Dokumentation liegt in [docs/api/audit-proof-save-verify-validation.md](docs/api/audit-proof-save-verify-validation.md) und [docs/user-guides/integrity-check.md](docs/user-guides/integrity-check.md).
+Die zugehörige technische Dokumentation liegt in [docs/api/audit-proof-save-verify-validation.md](docs/api/audit-proof-save-verify-validation.md), [docs/api/deletion-tombstones.md](docs/api/deletion-tombstones.md) und [docs/user-guides/integrity-check.md](docs/user-guides/integrity-check.md).
 
 ## Tech Stack
 
@@ -91,6 +93,7 @@ docker compose up -d
 - Installation: [docs/user-guides/installation.md](docs/user-guides/installation.md)
 - Integritätsprüfung: [docs/user-guides/integrity-check.md](docs/user-guides/integrity-check.md)
 - Audit-Proof-Validierung: [docs/api/audit-proof-save-verify-validation.md](docs/api/audit-proof-save-verify-validation.md)
+- Delete Tombstones: [docs/api/deletion-tombstones.md](docs/api/deletion-tombstones.md)
 
 ## Upstream
 
