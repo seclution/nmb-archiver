@@ -28,14 +28,25 @@ inklusive Payload-Form, Hash/Timestamp-Herkunft und den Stellen, an denen Daten 
   - `computeVerificationRootHash()` bildet `sha256(JSON.stringify({ emailHashSha256, attachments }))`.
   - Die Reihenfolge ist deterministisch, damit Save und Verify identisch rechnen.
 
-### 1.4 Root-Hash in DB + Push ans Audit-Proof-Backend
+### 1.4 Root-Hash in DB + persistente Submission ans Audit-Proof-Backend
 - Datei: `packages/backend/src/services/IngestionService.ts`
 - Relevanz:
   - `verificationRootHash` wird in `archived_emails.verification_root_hash` gespeichert.
-  - Danach Aufruf von `AuditProofService.saveEmailHash(systemSettings, archivedEmail.id, verificationRootHash)`.
-  - Bei Fehlern im externen Push wird nur gewarnt (Ingestion läuft weiter).
+  - Gleichzeitig wird `auditProofSubmissionStatus='pending'` gesetzt.
+  - Danach wird ein persistenter Queue-Job für die `/save`-Submission angelegt.
 
-### 1.5 Exakte `/save` Request-Form
+### 1.5 Retry- und Replay-Modell
+- Dateien:
+  - `packages/backend/src/services/AuditProofEmailSubmissionService.ts`
+  - `packages/backend/src/jobs/processors/submit-email-proof.processor.ts`
+  - `packages/backend/src/jobs/processors/schedule-audit-proof-submission-retry.processor.ts`
+  - `packages/backend/src/jobs/schedulers/sync-scheduler.ts`
+- Relevanz:
+  - Ein erfolgreicher `/save`-HTTP-Call gilt aus Applikationssicht als `submitted`.
+  - Fehlgeschlagene oder noch nicht konfigurierte Submissions bleiben lokal sichtbar und werden über den Scheduler erneut eingereiht.
+  - Dadurch gehen Audit-Proof-Submissions nicht mehr verloren, auch wenn das Backend beim Ingest vorübergehend nicht erreichbar ist.
+
+### 1.6 Exakte `/save` Request-Form
 - Datei: `packages/backend/src/services/AuditProofService.ts`
 - Relevanz:
   - `saveEmailHash()` baut den Key als `${instanceId}:${archivedEmailId}`.
@@ -120,6 +131,15 @@ inklusive Payload-Form, Hash/Timestamp-Herkunft und den Stellen, an denen Daten 
   - Integration ist aktiv nur wenn **URL und Instance-ID** vorhanden sind.
   - URL-Fallback optional über `AUDIT_PROOF_BACKEND_URL`.
 
+### 3.3 Retry-Scheduler
+- Dateien:
+  - `.env.example`
+  - `open-archiver.yml`
+  - `packages/backend/src/config/app.ts`
+- Relevanz:
+  - `AUDIT_PROOF_SUBMISSION_FREQUENCY` steuert den Replay-Zyklus für `pending`, `failed` und `skipped_not_configured`.
+  - Standard ist `* * * * *`, also ein Retry pro Minute.
+
 ## 4) Wo du Payloads/Ergebnisse eindeutig prüfen kannst
 
 ### 4.1 Debug-Logs für Request/Response aktivieren
@@ -145,6 +165,11 @@ inklusive Payload-Form, Hash/Timestamp-Herkunft und den Stellen, an denen Daten 
 - Felder:
   - `storage_hash_sha256` (Referenzhash der E-Mail)
   - `verification_root_hash` (beim Save berechneter Root-Hash)
+  - `audit_proof_submission_status`
+  - `audit_proof_submitted_at`
+  - `audit_proof_last_submission_attempt_at`
+  - `audit_proof_submission_attempts`
+  - `audit_proof_last_submission_error`
   - `archived_at` (Basis für Verify-Timestamp)
 
 ### 5.2 Attachments
@@ -156,10 +181,11 @@ inklusive Payload-Form, Hash/Timestamp-Herkunft und den Stellen, an denen Daten 
 
 Für die Beweiskette sind die zentralen Garantien:
 1. Save sendet **nicht** den Rohmail-Hash, sondern den deterministisch abgeleiteten `verificationRootHash` an `/save`.
-2. Verify berechnet den Root-Hash aus **neu gehashten** Storage-Dateien (Mail + Attachments) erneut.
-3. Verify prüft zusätzlich den in der DB gespeicherten `verification_root_hash` gegen den frisch berechneten Manifest-Hash.
-4. Verify sendet `key + value(rootHash) + timestamp(archivedAt in Unix-Sekunden)` an `/verify`.
-5. Durch deterministisches Sorting im Manifest ist die Root-Hash-Bildung zwischen Save und Verify konsistent.
+2. Die Anwendung persistiert nur den Handover-Zustand `pending/submitted/failed/skipped_not_configured`, aber keinen dauerhaften `verified`-Status.
+3. Verify berechnet den Root-Hash aus **neu gehashten** Storage-Dateien (Mail + Attachments) erneut.
+4. Verify prüft zusätzlich den in der DB gespeicherten `verification_root_hash` gegen den frisch berechneten Manifest-Hash.
+5. Verify sendet `key + value(rootHash) + timestamp(archivedAt in Unix-Sekunden)` an `/verify`.
+6. Durch deterministisches Sorting im Manifest ist die Root-Hash-Bildung zwischen Save und Verify konsistent.
 
 ## 7) Löschungen und Audit-Spur
 
