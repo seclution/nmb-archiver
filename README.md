@@ -94,6 +94,7 @@ docker compose up -d
 - Integritätsprüfung: [docs/user-guides/integrity-check.md](docs/user-guides/integrity-check.md)
 - Audit-Proof-Validierung: [docs/api/audit-proof-save-verify-validation.md](docs/api/audit-proof-save-verify-validation.md)
 - Delete Tombstones: [docs/api/deletion-tombstones.md](docs/api/deletion-tombstones.md)
+- Audit-Proof Key Export: [docs/api/audit-proof-key-export.md](docs/api/audit-proof-key-export.md)
 
 ## Upstream
 

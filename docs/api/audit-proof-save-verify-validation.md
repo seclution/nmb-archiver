@@ -309,3 +309,6 @@ Die aktuelle Save/Verify-Kette von NMB Archiver ist fuer den Objektbestand berei
 6. Das Audit-Log verweist zusaetzlich auf denselben Delete-Nachweis.
 
 Der wichtigste verbleibende Ausbaupunkt liegt jetzt nicht mehr im Tombstone selbst, sondern in Auditor-UI, Tombstone-Verifikation und Reconciliation gegen unkontrollierte Out-of-Band-Loeschungen.
+
+Die geplante Backend-Variante mit `list/export keys` fuer genau diese Reconciliation ist in
+`docs/api/audit-proof-key-export.md` beschrieben.

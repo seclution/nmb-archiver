@@ -76,3 +76,6 @@ A successful delete now means:
 5. only then was the object physically removed.
 
 This does not protect against out-of-band manual deletion directly in database or object storage. For that, infrastructure controls and reconciliation jobs are still required.
+
+For the planned external reconciliation model with `list/export keys`, see
+[audit-proof-key-export.md](./audit-proof-key-export.md).

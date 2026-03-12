@@ -17,3 +17,4 @@ Before making requests to protected endpoints, you must authenticate with the AP
 - [**Search Service**](./search.md): Handles email search functionality.
 - [**Storage Service**](./storage.md): Manages file storage and downloads.
 - [**Deletion Tombstones**](./deletion-tombstones.md): Documents controlled deletes and external tombstone anchoring.
+- [**Audit-Proof Key Export**](./audit-proof-key-export.md): Describes the future `list/export keys` backend variant for reconciliation and silent-delete detection.

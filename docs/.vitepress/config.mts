@@ -83,6 +83,7 @@ export default defineConfig({
 					{ text: 'Ingestion', link: '/api/ingestion' },
 					{ text: 'Integrity Check', link: '/api/integrity' },
 					{ text: 'Deletion Tombstones', link: '/api/deletion-tombstones' },
+					{ text: 'Audit-Proof Key Export', link: '/api/audit-proof-key-export' },
 					{ text: 'Search', link: '/api/search' },
 					{ text: 'Storage', link: '/api/storage' },
 					{ text: 'Jobs', link: '/api/jobs' },
