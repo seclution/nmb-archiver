@@ -1,9 +1,11 @@
 import type { Request, Response } from 'express';
 import { SettingsService } from '../../services/SettingsService';
 import { UserService } from '../../services/UserService';
+import { NmbRevisionProofSubmissionService } from '../../services/NmbRevisionProofSubmissionService';
 
 const settingsService = new SettingsService();
 const userService = new UserService();
+const nmbRevisionProofSubmissionService = new NmbRevisionProofSubmissionService();
 
 export const getSystemSettings = async (req: Request, res: Response) => {
 	try {
@@ -34,5 +36,14 @@ export const updateSystemSettings = async (req: Request, res: Response) => {
 	} catch (error) {
 		// A more specific error could be logged here
 		res.status(500).json({ message: req.t('settings.failedToUpdate') });
+	}
+};
+
+export const getNmbRevisionProofOverview = async (req: Request, res: Response) => {
+	try {
+		const overview = await nmbRevisionProofSubmissionService.getOverview();
+		res.status(200).json(overview);
+	} catch (error) {
+		res.status(500).json({ message: req.t('settings.failedToRetrieve') });
 	}
 };

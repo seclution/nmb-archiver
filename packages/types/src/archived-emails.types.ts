@@ -1,3 +1,9 @@
+import type {
+	EmailVerificationSummary,
+	ExternalProofResult,
+	LocalIntegrityResult,
+} from './integrity.types';
+
 /**
  * Represents a single recipient of an email.
  */
@@ -22,6 +28,42 @@ export interface ThreadEmail {
 	subject: string | null;
 	sentAt: Date;
 	senderEmail: string;
+}
+
+export interface NmbRevisionProofLogItem {
+	res: string;
+	msg: string;
+}
+
+export interface NmbRevisionProofVerifyResult {
+	res: string;
+	msg: string;
+	log?: Record<string, NmbRevisionProofLogItem>;
+	httpStatus?: number;
+	error?: string;
+}
+
+export const NmbRevisionProofSubmissionStatuses = [
+	'pending',
+	'submitted',
+	'failed',
+	'skipped_not_configured',
+] as const;
+
+export type NmbRevisionProofSubmissionStatus =
+	(typeof NmbRevisionProofSubmissionStatuses)[number];
+
+export interface NmbRevisionProofState {
+	verificationRootHash: string | null;
+	submissionStatus: NmbRevisionProofSubmissionStatus | null;
+	submittedAt: Date | null;
+	lastSubmissionAttemptAt: Date | null;
+	submissionAttempts: number;
+	lastSubmissionError: string | null;
+	localIntegrity?: LocalIntegrityResult;
+	externalProof?: ExternalProofResult;
+	verifyResult?: NmbRevisionProofVerifyResult | null;
+	verification?: EmailVerificationSummary;
 }
 
 /**
@@ -49,6 +91,7 @@ export interface ArchivedEmail {
 	thread?: ThreadEmail[];
 	path: string | null;
 	tags: string[] | null;
+	nmbRevisionProof?: NmbRevisionProofState | null;
 }
 
 /**

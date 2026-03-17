@@ -21,6 +21,16 @@
 	let integrityReport = $derived(data.integrityReport);
 	let isDeleteDialogOpen = $state(false);
 	let isDeleting = $state(false);
+	let nmbRevisionProof = $derived(email?.nmbRevisionProof);
+	let verificationResult = $derived(nmbRevisionProof?.verifyResult);
+	let verificationPassed = $derived(verificationResult?.res === 'PASSED');
+	const verificationPendingStates = ['NOT_FOUND', 'TOO_EARLY'];
+	let verificationPending = $derived(
+		verificationResult ? verificationPendingStates.includes(verificationResult.res) : false
+	);
+	let archivalUnixTimestamp = $derived(
+		email?.archivedAt ? Math.floor(new Date(email.archivedAt).getTime() / 1000) : null
+	);
 
 	async function download(path: string, filename: string) {
 		if (!browser) return;
@@ -82,195 +92,289 @@
 </svelte:head>
 
 {#if email}
-	<div class="grid grid-cols-3 gap-6">
-		<div class="col-span-3 md:col-span-2">
-			<Card.Root>
-				<Card.Header>
-					<Card.Title>{email.subject || $t('app.archive.no_subject')}</Card.Title>
-					<Card.Description>
-						{$t('app.archive.from')}: {email.senderEmail || email.senderName} | {$t(
-							'app.archive.sent'
-						)}: {new Date(email.sentAt).toLocaleString()}
-					</Card.Description>
-				</Card.Header>
-				<Card.Content>
-					<div class="space-y-4">
-						<div class="space-y-1">
-							<h3 class="font-semibold">{$t('app.archive.recipients')}</h3>
-							<Card.Description>
-								<p>
-									{$t('app.archive.to')}: {email.recipients
-										.map((r) => r.email || r.name)
-										.join(', ')}
-								</p>
-							</Card.Description>
-						</div>
-						<div class=" space-y-1">
-							<h3 class="font-semibold">{$t('app.archive.meta_data')}</h3>
-							<Card.Description class="space-y-2">
-								{#if email.path}
-									<div class="flex flex-wrap items-center gap-2">
-										<span>{$t('app.archive.folder')}:</span>
-										<span class="  bg-muted truncate rounded p-1.5 text-xs"
-											>{email.path || '/'}</span
-										>
-									</div>
-								{/if}
-								{#if email.tags && email.tags.length > 0}
-									<div class="flex flex-wrap items-center gap-2">
-										<span> {$t('app.archive.tags')}: </span>
-										{#each email.tags as tag}
-											<span class="  bg-muted truncate rounded p-1.5 text-xs"
-												>{tag}</span
-											>
-										{/each}
-									</div>
-								{/if}
-								<div class="flex flex-wrap items-center gap-2">
-									<span>{$t('app.archive.size')}:</span>
-									<span class="  bg-muted truncate rounded p-1.5 text-xs"
-										>{formatBytes(email.sizeBytes)}</span
-									>
-								</div>
-							</Card.Description>
-						</div>
-						<div>
-							<h3 class="font-semibold">{$t('app.archive.email_preview')}</h3>
-							<EmailPreview raw={email.raw} />
-						</div>
-						{#if email.attachments && email.attachments.length > 0}
-							<div>
-								<h3 class="font-semibold">
-									{$t('app.archive.attachments')}
-								</h3>
-								<ul class="mt-2 space-y-2">
-									{#each email.attachments as attachment}
-										<li
-											class="flex items-center justify-between rounded-md border p-2"
-										>
-											<span
-												>{attachment.filename} ({formatBytes(
-													attachment.sizeBytes
-												)})</span
-											>
-											<Button
-												variant="outline"
-												size="sm"
-												onclick={() =>
-													download(
-														attachment.storagePath,
-														attachment.filename
-													)}
-											>
-												{$t('app.archive.download')}
-											</Button>
-										</li>
-									{/each}
-								</ul>
-							</div>
-						{/if}
-					</div>
-				</Card.Content>
-			</Card.Root>
-		</div>
-		<div class="col-span-3 space-y-6 md:col-span-1">
-			<Card.Root>
-				<Card.Header>
-					<Card.Title>{$t('app.archive.actions')}</Card.Title>
-				</Card.Header>
-				<Card.Content class="space-y-2">
-					<Button
-						onclick={() =>
-							download(email.storagePath, `${email.subject || 'email'}.eml`)}
-						>{$t('app.archive.download_eml')}</Button
-					>
-					<Button variant="destructive" onclick={() => (isDeleteDialogOpen = true)}>
-						{$t('app.archive.delete_email')}
-					</Button>
-				</Card.Content>
-			</Card.Root>
+	<div class="space-y-4">
+		{#if verificationResult}
+			<Alert.Root
+				variant={verificationPassed || verificationPending ? 'default' : 'destructive'}
+				class={verificationPassed
+					? 'border-green-500 bg-green-50 text-green-900'
+					: verificationPending
+						? 'border-yellow-400 bg-yellow-50 text-yellow-900'
+						: ''}
+			>
+				{#if verificationPassed}
+					<ShieldCheck class="h-4 w-4" />
+					<Alert.Title>NMB revision-proof verification passed</Alert.Title>
+				{:else if verificationPending}
+					<AlertTriangle class="h-4 w-4" />
+					<Alert.Title>NMB revision-proof verification pending</Alert.Title>
+				{:else}
+					<ShieldAlert class="h-4 w-4" />
+					<Alert.Title>NMB revision-proof verification failed</Alert.Title>
+				{/if}
+				<Alert.Description>
+					{verificationResult.msg}
+					{#if email?.archivedAt && archivalUnixTimestamp}
+						<br />
+						Archive timestamp: {new Date(email.archivedAt).toLocaleString()} (Unix:{' '}
+						{archivalUnixTimestamp})
+					{/if}
+				</Alert.Description>
+			</Alert.Root>
+		{/if}
 
-			{#if integrityReport && integrityReport.length > 0}
+		<div class="grid grid-cols-3 gap-6">
+			<div class="col-span-3 md:col-span-2">
 				<Card.Root>
 					<Card.Header>
-						<Card.Title>{$t('app.archive.integrity_report')}</Card.Title>
+						<Card.Title>{email.subject || $t('app.archive.no_subject')}</Card.Title>
 						<Card.Description>
-							<span class="mt-1">
-								{$t('app.archive.integrity_report_description')}
-								<a
-									href="https://docs.openarchiver.com/user-guides/integrity-check.html"
-									target="_blank"
-									class="text-primary underline underline-offset-2"
-									>{$t('app.common.read_docs')}</a
-								>.
-							</span>
+							{$t('app.archive.from')}: {email.senderEmail || email.senderName} | {$t(
+								'app.archive.sent'
+							)}: {new Date(email.sentAt).toLocaleString()}
 						</Card.Description>
 					</Card.Header>
-					<Card.Content class="space-y-2">
-						<ul class="space-y-2">
-							{#each integrityReport as item}
-								<li class="flex items-center justify-between">
-									<div class="flex min-w-0 flex-row items-center space-x-2">
-										{#if item.isValid}
-											<ShieldCheck
-												class="h-4 w-4 flex-shrink-0 text-green-500"
-											/>
-										{:else}
-											<ShieldAlert
-												class="h-4 w-4 flex-shrink-0 text-red-500"
-											/>
-										{/if}
-										<div class="min-w-0 max-w-64">
-											<p class="truncate text-sm font-medium">
-												{#if item.type === 'email'}
-													{$t('app.archive.email_eml')}
-												{:else}
-													{item.filename}
-												{/if}
-											</p>
+					<Card.Content>
+						<div class="space-y-4">
+							<div class="space-y-1">
+								<h3 class="font-semibold">{$t('app.archive.recipients')}</h3>
+								<Card.Description>
+									<p>
+										{$t('app.archive.to')}: {email.recipients
+											.map((r) => r.email || r.name)
+											.join(', ')}
+									</p>
+								</Card.Description>
+							</div>
+							<div class=" space-y-1">
+								<h3 class="font-semibold">{$t('app.archive.meta_data')}</h3>
+								<Card.Description class="space-y-2">
+									{#if email.path}
+										<div class="flex flex-wrap items-center gap-2">
+											<span>{$t('app.archive.folder')}:</span>
+											<span class="  bg-muted truncate rounded p-1.5 text-xs"
+												>{email.path || '/'}</span
+											>
 										</div>
-									</div>
-									{#if item.isValid}
-										<Badge variant="default" class="bg-green-500"
-											>{$t('app.archive.valid')}</Badge
-										>
-									{:else}
-										<HoverCard.Root>
-											<HoverCard.Trigger>
-												<Badge variant="destructive" class="cursor-help"
-													>{$t('app.archive.invalid')}</Badge
-												>
-											</HoverCard.Trigger>
-											<HoverCard.Content class="w-80 bg-gray-50 text-red-500">
-												<p>{item.reason}</p>
-											</HoverCard.Content>
-										</HoverCard.Root>
 									{/if}
-								</li>
-							{/each}
-						</ul>
+									{#if email.tags && email.tags.length > 0}
+										<div class="flex flex-wrap items-center gap-2">
+											<span> {$t('app.archive.tags')}: </span>
+											{#each email.tags as tag}
+												<span
+													class="  bg-muted truncate rounded p-1.5 text-xs"
+													>{tag}</span
+												>
+											{/each}
+										</div>
+									{/if}
+									<div class="flex flex-wrap items-center gap-2">
+										<span>{$t('app.archive.size')}:</span>
+										<span class="  bg-muted truncate rounded p-1.5 text-xs"
+											>{formatBytes(email.sizeBytes)}</span
+										>
+									</div>
+								</Card.Description>
+							</div>
+							<div>
+								<h3 class="font-semibold">{$t('app.archive.email_preview')}</h3>
+								<EmailPreview raw={email.raw} />
+							</div>
+							{#if email.attachments && email.attachments.length > 0}
+								<div>
+									<h3 class="font-semibold">
+										{$t('app.archive.attachments')}
+									</h3>
+									<ul class="mt-2 space-y-2">
+										{#each email.attachments as attachment}
+											<li
+												class="flex items-center justify-between rounded-md border p-2"
+											>
+												<span
+													>{attachment.filename} ({formatBytes(
+														attachment.sizeBytes
+													)})</span
+												>
+												<Button
+													variant="outline"
+													size="sm"
+													onclick={() =>
+														download(
+															attachment.storagePath,
+															attachment.filename
+														)}
+												>
+													{$t('app.archive.download')}
+												</Button>
+											</li>
+										{/each}
+									</ul>
+								</div>
+							{/if}
+						</div>
 					</Card.Content>
 				</Card.Root>
-			{:else}
-				<Alert.Root variant="destructive">
-					<AlertTriangle class="h-4 w-4" />
-					<Alert.Title>{$t('app.archive.integrity_check_failed_title')}</Alert.Title>
-					<Alert.Description>
-						{$t('app.archive.integrity_check_failed_message')}
-					</Alert.Description>
-				</Alert.Root>
-			{/if}
-
-			{#if email.thread && email.thread.length > 1}
+			</div>
+			<div class="col-span-3 space-y-6 md:col-span-1">
 				<Card.Root>
 					<Card.Header>
-						<Card.Title>{$t('app.archive.email_thread')}</Card.Title>
+						<Card.Title>{$t('app.archive.actions')}</Card.Title>
 					</Card.Header>
-					<Card.Content>
-						<EmailThread thread={email.thread} currentEmailId={email.id} />
+					<Card.Content class="space-y-2">
+						<Button
+							onclick={() =>
+								download(email.storagePath, `${email.subject || 'email'}.eml`)}
+							>{$t('app.archive.download_eml')}</Button
+						>
+						<Button variant="destructive" onclick={() => (isDeleteDialogOpen = true)}>
+							{$t('app.archive.delete_email')}
+						</Button>
 					</Card.Content>
 				</Card.Root>
-			{/if}
+
+				{#if nmbRevisionProof}
+					<Card.Root>
+						<Card.Header>
+							<Card.Title>NMB Revision-Proof</Card.Title>
+							<Card.Description>
+								Separate status from the dedicated NMB sidecar, queue and scheduler
+								path.
+							</Card.Description>
+						</Card.Header>
+						<Card.Content class="space-y-3 text-sm">
+							<div class="flex items-center justify-between gap-3">
+								<span class="text-muted-foreground">Submission status</span>
+								<Badge variant="outline">
+									{nmbRevisionProof.submissionStatus ?? 'not_tracked'}
+								</Badge>
+							</div>
+							<div class="flex items-center justify-between gap-3">
+								<span class="text-muted-foreground">Attempts</span>
+								<span>{nmbRevisionProof.submissionAttempts}</span>
+							</div>
+							<div class="space-y-1">
+								<p class="text-muted-foreground">Verification root hash</p>
+								<p class="break-all font-mono text-xs">
+									{nmbRevisionProof.verificationRootHash ?? 'n/a'}
+								</p>
+							</div>
+							<div class="space-y-1">
+								<p class="text-muted-foreground">Last submission attempt</p>
+								<p>
+									{nmbRevisionProof.lastSubmissionAttemptAt
+										? new Date(
+												nmbRevisionProof.lastSubmissionAttemptAt
+											).toLocaleString()
+										: 'No attempts yet'}
+								</p>
+							</div>
+							<div class="space-y-1">
+								<p class="text-muted-foreground">Submitted at</p>
+								<p>
+									{nmbRevisionProof.submittedAt
+										? new Date(nmbRevisionProof.submittedAt).toLocaleString()
+										: 'Not submitted yet'}
+								</p>
+							</div>
+							{#if nmbRevisionProof.lastSubmissionError}
+								<Alert.Root variant="destructive">
+									<ShieldAlert class="h-4 w-4" />
+									<Alert.Title>Last submission error</Alert.Title>
+									<Alert.Description>
+										{nmbRevisionProof.lastSubmissionError}
+									</Alert.Description>
+								</Alert.Root>
+							{/if}
+						</Card.Content>
+					</Card.Root>
+				{/if}
+
+				{#if integrityReport && integrityReport.length > 0}
+					<Card.Root>
+						<Card.Header>
+							<Card.Title>{$t('app.archive.integrity_report')}</Card.Title>
+							<Card.Description>
+								<span class="mt-1">
+									{$t('app.archive.integrity_report_description')}
+									<a
+										href="https://docs.openarchiver.com/user-guides/integrity-check.html"
+										target="_blank"
+										class="text-primary underline underline-offset-2"
+										>{$t('app.common.read_docs')}</a
+									>.
+								</span>
+							</Card.Description>
+						</Card.Header>
+						<Card.Content class="space-y-2">
+							<ul class="space-y-2">
+								{#each integrityReport as item}
+									<li class="flex items-center justify-between">
+										<div class="flex min-w-0 flex-row items-center space-x-2">
+											{#if item.isValid}
+												<ShieldCheck
+													class="h-4 w-4 flex-shrink-0 text-green-500"
+												/>
+											{:else}
+												<ShieldAlert
+													class="h-4 w-4 flex-shrink-0 text-red-500"
+												/>
+											{/if}
+											<div class="min-w-0 max-w-64">
+												<p class="truncate text-sm font-medium">
+													{#if item.type === 'email'}
+														{$t('app.archive.email_eml')}
+													{:else if item.type === 'verification_root'}
+														Stored verification root hash
+													{:else}
+														{item.filename}
+													{/if}
+												</p>
+											</div>
+										</div>
+										{#if item.isValid}
+											<Badge variant="default" class="bg-green-500"
+												>{$t('app.archive.valid')}</Badge
+											>
+										{:else}
+											<HoverCard.Root>
+												<HoverCard.Trigger>
+													<Badge variant="destructive" class="cursor-help"
+														>{$t('app.archive.invalid')}</Badge
+													>
+												</HoverCard.Trigger>
+												<HoverCard.Content
+													class="w-80 bg-gray-50 text-red-500"
+												>
+													<p>{item.reason}</p>
+												</HoverCard.Content>
+											</HoverCard.Root>
+										{/if}
+									</li>
+								{/each}
+							</ul>
+						</Card.Content>
+					</Card.Root>
+				{:else}
+					<Alert.Root variant="destructive">
+						<AlertTriangle class="h-4 w-4" />
+						<Alert.Title>{$t('app.archive.integrity_check_failed_title')}</Alert.Title>
+						<Alert.Description>
+							{$t('app.archive.integrity_check_failed_message')}
+						</Alert.Description>
+					</Alert.Root>
+				{/if}
+
+				{#if email.thread && email.thread.length > 1}
+					<Card.Root>
+						<Card.Header>
+							<Card.Title>{$t('app.archive.email_thread')}</Card.Title>
+						</Card.Header>
+						<Card.Content>
+							<EmailThread thread={email.thread} currentEmailId={email.id} />
+						</Card.Content>
+					</Card.Root>
+				{/if}
+			</div>
 		</div>
 	</div>
 

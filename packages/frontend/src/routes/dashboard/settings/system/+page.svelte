@@ -12,6 +12,7 @@
 
 	let { data, form }: { data: PageData; form: any } = $props();
 	let settings = $state(data.systemSettings);
+	let nmbRevisionProofOverview = $derived(data.nmbRevisionProofOverview);
 	let isSaving = $state(false);
 
 	const languageOptions: { value: SupportedLanguage; label: string }[] = [
@@ -108,6 +109,65 @@
 				</div>
 
 				<div class="grid gap-2">
+					<Label.Root class="mb-1" for="nmbRevisionProofInstanceId"
+						>NMB Revision-Proof Instance ID</Label.Root
+					>
+					<Input
+						id="nmbRevisionProofInstanceId"
+						name="nmbRevisionProofInstanceId"
+						type="text"
+						placeholder="ArchiverInstanceCustomerX"
+						bind:value={settings.nmbRevisionProof.instanceId}
+						class="max-w-sm"
+					/>
+					<p class="text-muted-foreground text-xs">
+						Used as the dedicated NMB prefix for revision-proof keys:
+						<code>{'{'}instanceId{'}'}:{'{'}mailId{'}'}</code>
+					</p>
+				</div>
+
+				<div class="grid gap-2">
+					<Label.Root class="mb-1" for="nmbRevisionProofBackendUrl"
+						>NMB Revision-Proof Backend URL</Label.Root
+					>
+					<Input
+						id="nmbRevisionProofBackendUrl"
+						name="nmbRevisionProofBackendUrl"
+						type="url"
+						placeholder="http://10.99.105.10"
+						bind:value={settings.nmbRevisionProof.backendUrl}
+						class="max-w-sm"
+					/>
+				</div>
+
+				<div class="grid gap-2">
+					<Label.Root class="mb-1" for="nmbRevisionProofRequestTimeoutMs"
+						>NMB Revision-Proof Request Timeout (ms)</Label.Root
+					>
+					<Input
+						id="nmbRevisionProofRequestTimeoutMs"
+						name="nmbRevisionProofRequestTimeoutMs"
+						type="number"
+						min="1000"
+						step="500"
+						bind:value={settings.nmbRevisionProof.requestTimeoutMs}
+						class="max-w-sm"
+					/>
+				</div>
+
+				<div class="flex items-center gap-2">
+					<input
+						id="nmbRevisionProofDebugRequests"
+						name="nmbRevisionProofDebugRequests"
+						type="checkbox"
+						bind:checked={settings.nmbRevisionProof.debugRequests}
+					/>
+					<Label.Root for="nmbRevisionProofDebugRequests"
+						>Enable debug logging for NMB revision-proof `/save` and `/verify`</Label.Root
+					>
+				</div>
+
+				<div class="grid gap-2">
 					<Label.Root class="mb-1" for="supportEmail"
 						>{$t('app.system_settings.support_email')}</Label.Root
 					>
@@ -132,4 +192,57 @@
 			</Card.Footer>
 		</Card.Root>
 	</form>
+
+	<Card.Root>
+		<Card.Header>
+			<Card.Title>NMB Revision-Proof Status</Card.Title>
+			<Card.Description>
+				Overview of the dedicated NMB submission pipeline and separate scheduler path.
+			</Card.Description>
+		</Card.Header>
+		<Card.Content class="grid gap-4 md:grid-cols-3">
+			<div class="rounded-lg border p-4">
+				<p class="text-muted-foreground text-sm">Configuration</p>
+				<p class="mt-1 text-2xl font-semibold">
+					{nmbRevisionProofOverview?.isConfigured ? 'active' : 'not configured'}
+				</p>
+			</div>
+			<div class="rounded-lg border p-4">
+				<p class="text-muted-foreground text-sm">Tracked emails</p>
+				<p class="mt-1 text-2xl font-semibold">
+					{nmbRevisionProofOverview?.totalTrackedEmails ?? 0}
+				</p>
+			</div>
+			<div class="rounded-lg border p-4">
+				<p class="text-muted-foreground text-sm">Last submission attempt</p>
+				<p class="mt-1 text-sm font-medium">
+					{nmbRevisionProofOverview?.lastSubmissionAttemptAt
+						? new Date(
+								nmbRevisionProofOverview.lastSubmissionAttemptAt
+							).toLocaleString()
+						: 'No attempts yet'}
+				</p>
+			</div>
+			<div class="rounded-lg border p-4">
+				<p class="text-muted-foreground text-sm">Pending</p>
+				<p class="mt-1 text-2xl font-semibold">{nmbRevisionProofOverview?.pending ?? 0}</p>
+			</div>
+			<div class="rounded-lg border p-4">
+				<p class="text-muted-foreground text-sm">Submitted</p>
+				<p class="mt-1 text-2xl font-semibold">
+					{nmbRevisionProofOverview?.submitted ?? 0}
+				</p>
+			</div>
+			<div class="rounded-lg border p-4">
+				<p class="text-muted-foreground text-sm">Failed</p>
+				<p class="mt-1 text-2xl font-semibold">{nmbRevisionProofOverview?.failed ?? 0}</p>
+			</div>
+			<div class="rounded-lg border p-4 md:col-span-3">
+				<p class="text-muted-foreground text-sm">Skipped not configured</p>
+				<p class="mt-1 text-2xl font-semibold">
+					{nmbRevisionProofOverview?.skippedNotConfigured ?? 0}
+				</p>
+			</div>
+		</Card.Content>
+	</Card.Root>
 </div>

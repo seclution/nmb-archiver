@@ -12,6 +12,12 @@ export const createSettingsRouter = (authService: AuthService): Router => {
 	 * @returns SystemSettings
 	 */
 	router.get('/system', settingsController.getSystemSettings);
+	router.get(
+		'/system/nmb-revision-proof-overview',
+		requireAuth(authService),
+		requirePermission('manage', 'settings', 'settings.noPermissionToUpdate'),
+		settingsController.getNmbRevisionProofOverview
+	);
 
 	// Protected route to update settings
 	router.put(

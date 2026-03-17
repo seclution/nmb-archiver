@@ -27,3 +27,8 @@ export const indexingQueue = new Queue('indexing', {
 	connection,
 	defaultJobOptions,
 });
+
+export const nmbRevisionProofQueue = new Queue('nmb-revision-proof', {
+	connection,
+	defaultJobOptions,
+});

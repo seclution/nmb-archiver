@@ -6,6 +6,7 @@ export * from './schema/custodians';
 export * from './schema/ingestion-sources';
 export * from './schema/users';
 export * from './schema/system-settings';
+export * from './schema/nmb-revision-proof-email-records';
 export * from './schema/api-keys';
 export * from './schema/audit-logs';
 export * from './schema/enums';

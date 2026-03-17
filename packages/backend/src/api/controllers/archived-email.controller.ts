@@ -33,6 +33,7 @@ export class ArchivedEmailController {
 		try {
 			const { id } = req.params;
 			const userId = req.user?.sub;
+			const includeVerification = req.query.includeVerification === 'true';
 
 			if (!userId) {
 				return res.status(401).json({ message: req.t('errors.unauthorized') });
@@ -46,7 +47,8 @@ export class ArchivedEmailController {
 				id,
 				userId,
 				actor,
-				req.ip || 'unknown'
+				req.ip || 'unknown',
+				{ includeVerification }
 			);
 			if (!email) {
 				return res.status(404).json({ message: req.t('archivedEmail.notFound') });

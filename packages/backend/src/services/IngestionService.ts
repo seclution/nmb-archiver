@@ -28,9 +28,16 @@ import { FilterBuilder } from './FilterBuilder';
 import { AuditService } from './AuditService';
 import { User } from '@open-archiver/types';
 import { checkDeletionEnabled } from '../helpers/deletionGuard';
+import { NmbRevisionProofSubmissionService } from './NmbRevisionProofSubmissionService';
+import {
+	buildVerificationManifest,
+	computeVerificationRootHash,
+	type VerificationManifestAttachment,
+} from '../helpers/verificationManifest';
 
 export class IngestionService {
 	private static auditService = new AuditService();
+	private static nmbRevisionProofSubmissionService = new NmbRevisionProofSubmissionService();
 	private static decryptSource(
 		source: typeof ingestionSources.$inferSelect
 	): IngestionSource | null {
@@ -477,6 +484,8 @@ export class IngestionService {
 				})
 				.returning();
 
+			const archivedAttachmentManifestEntries: VerificationManifestAttachment[] = [];
+
 			if (email.attachments.length > 0) {
 				for (const attachment of email.attachments) {
 					const attachmentBuffer = attachment.content;
@@ -542,7 +551,35 @@ export class IngestionService {
 							attachmentId: attachmentRecord.id,
 						})
 						.onConflictDoNothing();
+
+					archivedAttachmentManifestEntries.push({
+						filename: attachmentRecord.filename,
+						sizeBytes: attachmentRecord.sizeBytes,
+						contentHashSha256: attachmentRecord.contentHashSha256,
+					});
 				}
+			}
+
+			const verificationManifest = buildVerificationManifest(
+				emailHash,
+				archivedAttachmentManifestEntries
+			);
+			const verificationRootHash = computeVerificationRootHash(verificationManifest);
+
+			await IngestionService.nmbRevisionProofSubmissionService.upsertPendingSubmission(
+				archivedEmail.id,
+				verificationRootHash
+			);
+
+			try {
+				await IngestionService.nmbRevisionProofSubmissionService.enqueueEmailSubmission(
+					archivedEmail.id
+				);
+			} catch (error) {
+				logger.warn(
+					{ archivedEmailId: archivedEmail.id, error },
+					'Failed to enqueue NMB revision-proof submission'
+				);
 			}
 
 			return {

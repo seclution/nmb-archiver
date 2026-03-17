@@ -12,6 +12,23 @@ export type SupportedLanguage =
 
 export type Theme = 'light' | 'dark' | 'system';
 
+export interface NmbRevisionProofSettings {
+	instanceId: string | null;
+	backendUrl: string | null;
+	debugRequests: boolean;
+	requestTimeoutMs: number;
+}
+
+export interface NmbRevisionProofOverview {
+	isConfigured: boolean;
+	totalTrackedEmails: number;
+	pending: number;
+	submitted: number;
+	failed: number;
+	skippedNotConfigured: number;
+	lastSubmissionAttemptAt: Date | null;
+}
+
 export interface SystemSettings {
 	/** The default display language for the application UI. */
 	language: SupportedLanguage;
@@ -21,4 +38,7 @@ export interface SystemSettings {
 
 	/** A public-facing email address for user support inquiries. */
 	supportEmail: string | null;
+
+	/** Namespace for NMB-specific revision-proof backend settings. */
+	nmbRevisionProof: NmbRevisionProofSettings;
 }

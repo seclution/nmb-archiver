@@ -20,6 +20,8 @@ import type { Readable } from 'stream';
 import { AuditService } from './AuditService';
 import { User } from '@open-archiver/types';
 import { checkDeletionEnabled } from '../helpers/deletionGuard';
+import { EmailVerificationService } from './EmailVerificationService';
+import { NmbRevisionProofSubmissionService } from './NmbRevisionProofSubmissionService';
 
 interface DbRecipients {
 	to: { name: string; address: string }[];
@@ -38,6 +40,8 @@ async function streamToBuffer(stream: Readable): Promise<Buffer> {
 
 export class ArchivedEmailService {
 	private static auditService = new AuditService();
+	private static emailVerificationService = new EmailVerificationService();
+	private static nmbRevisionProofSubmissionService = new NmbRevisionProofSubmissionService();
 	private static mapRecipients(dbRecipients: unknown): Recipient[] {
 		const { to = [], cc = [], bcc = [] } = dbRecipients as DbRecipients;
 
@@ -104,7 +108,8 @@ export class ArchivedEmailService {
 		emailId: string,
 		userId: string,
 		actor: User,
-		actorIp: string
+		actorIp: string,
+		options?: { includeVerification?: boolean }
 	): Promise<ArchivedEmail | null> {
 		const email = await db.query.archivedEmails.findFirst({
 			where: eq(archivedEmails.id, emailId),
@@ -151,9 +156,42 @@ export class ArchivedEmailService {
 			});
 		}
 
-		const storage = new StorageService();
-		const rawStream = await storage.get(email.storagePath);
-		const raw = await streamToBuffer(rawStream as Readable);
+		const nmbRevisionProofState = await this.nmbRevisionProofSubmissionService.getEmailRecord(
+			email.id
+		);
+
+		let raw: Buffer;
+		let nmbRevisionProof = nmbRevisionProofState;
+
+		if (options?.includeVerification) {
+			const verification = await this.emailVerificationService.verifyEmail(email, {
+				includeExternalProof: true,
+			});
+
+			raw = verification.raw;
+			nmbRevisionProof = {
+				verificationRootHash:
+					verification.verificationRootHash ?? nmbRevisionProofState?.verificationRootHash,
+				submissionStatus: nmbRevisionProofState?.submissionStatus ?? null,
+				submittedAt: nmbRevisionProofState?.submittedAt ?? null,
+				lastSubmissionAttemptAt: nmbRevisionProofState?.lastSubmissionAttemptAt ?? null,
+				submissionAttempts: nmbRevisionProofState?.submissionAttempts ?? 0,
+				lastSubmissionError: nmbRevisionProofState?.lastSubmissionError ?? null,
+				verifyResult: verification.nmbRevisionProofVerifyResult ?? null,
+				localIntegrity: verification.localIntegrity,
+				externalProof: verification.externalProof,
+				verification: {
+					manifest: verification.manifest,
+					verificationRootHash: verification.verificationRootHash,
+					localIntegrity: verification.localIntegrity,
+					externalProof: verification.externalProof,
+				},
+			};
+		} else {
+			const storage = new StorageService();
+			const rawStream = await storage.get(email.storagePath);
+			raw = await streamToBuffer(rawStream as Readable);
+		}
 
 		const mappedEmail = {
 			...email,
@@ -162,6 +200,7 @@ export class ArchivedEmailService {
 			thread: threadEmails,
 			tags: (email.tags as string[] | null) || null,
 			path: email.path || null,
+			nmbRevisionProof,
 		};
 
 		if (email.hasAttachments) {

@@ -7,6 +7,12 @@ const DEFAULT_SETTINGS: SystemSettings = {
 	language: 'en',
 	theme: 'system',
 	supportEmail: null,
+	nmbRevisionProof: {
+		instanceId: null,
+		backendUrl: null,
+		debugRequests: false,
+		requestTimeoutMs: 5000,
+	},
 };
 
 export class SettingsService {
@@ -23,7 +29,7 @@ export class SettingsService {
 			return this.createDefaultSystemSettings();
 		}
 
-		return settings[0].config;
+		return this.normalizeSettings(settings[0].config);
 	}
 
 	/**
@@ -37,7 +43,14 @@ export class SettingsService {
 		actorIp: string
 	): Promise<SystemSettings> {
 		const currentConfig = await this.getSystemSettings();
-		const mergedConfig = { ...currentConfig, ...newConfig };
+		const mergedConfig: SystemSettings = {
+			...currentConfig,
+			...newConfig,
+			nmbRevisionProof: {
+				...currentConfig.nmbRevisionProof,
+				...(newConfig.nmbRevisionProof ?? {}),
+			},
+		};
 
 		// Since getSettings ensures a record always exists, we can directly update.
 		const [result] = await db.update(systemSettings).set({ config: mergedConfig }).returning();
@@ -61,7 +74,7 @@ export class SettingsService {
 			});
 		}
 
-		return result.config;
+		return this.normalizeSettings(result.config);
 	}
 
 	/**
@@ -74,6 +87,17 @@ export class SettingsService {
 			.insert(systemSettings)
 			.values({ config: DEFAULT_SETTINGS })
 			.returning();
-		return result.config;
+		return this.normalizeSettings(result.config);
+	}
+
+	private normalizeSettings(settings: SystemSettings): SystemSettings {
+		return {
+			...DEFAULT_SETTINGS,
+			...settings,
+			nmbRevisionProof: {
+				...DEFAULT_SETTINGS.nmbRevisionProof,
+				...(settings.nmbRevisionProof ?? {}),
+			},
+		};
 	}
 }
